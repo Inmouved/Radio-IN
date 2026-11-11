@@ -8,14 +8,14 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 | Plateforme | Version et disponibilité |
 | --- | --- |
-| **Windows** | **Bêta 1.2** disponible — installateur ou version portable |
+| **Windows** | **Bêta 1.3** disponible — installateur ou version portable |
 | **Android** | Développement en pause — aucun APK publié dans les releases de ce dépôt pour le moment |
 
-### Windows — Bêta 1.2
+### Windows — Bêta 1.3
 
-- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.2.0-beta/RadioIN-Beta-1.2-Setup.exe)**
-- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.2.0-beta/RadioIN-Beta-1.2-Windows.zip)**
-- **[Lire les nouveautés de la Bêta 1.2](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.2.0-beta)**
+- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.0-beta/RadioIN-Beta-1.3-Setup.exe)**
+- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.0-beta/RadioIN-Beta-1.3-Windows.zip)**
+- **[Lire les nouveautés de la Bêta 1.3](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.0-beta)**
 
 **Configuration requise :** Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 ou supérieur et une connexion Internet. Le moteur audio est inclus : VLC n’a pas besoin d’être installé.
 
@@ -26,11 +26,15 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 ### Écouter et retrouver les titres
 
 - Écoute du direct avec le titre, l’artiste et la pochette du morceau.
-- Historique des derniers titres diffusés.
+- Historique des derniers titres diffusés et des morceaux observés pendant la session d’écoute (jusqu’à 500 titres, jusqu’à la fermeture).
+- File **À venir** : pochettes, artistes, demandes auditeur et horaires estimés, actualisés toutes les 15 secondes.
+- Accès à **À venir** dans les quatre modes depuis le menu **⋯**, avec un bouton direct en mode Compact.
 - Catalogue avec recherche et demandes de titres.
 - Favoris : ajout depuis le lecteur, l’historique ou le catalogue, recherche et tri.
 - Messages de confirmation, de refus et d’erreur de demande intégrés au lecteur.
 - Export et import des favoris et des réglages.
+- Sauvegardes automatiques des favoris : les 20 dernières copies sont conservées, avec restauration par fusion.
+- Avertissement avant de redemander un titre déjà présent dans la file annoncée.
 
 ### Personnaliser le lecteur
 
@@ -45,11 +49,14 @@ Quatre modes d’affichage :
 
 Six designs sont disponibles : **Actuel, Sombre, Flamme, Vert, Bleu et Auto**.
 
+L’opacité est réglable de **70 à 100 %**, avec trois tailles de titres et de listes et des animations normales, discrètes ou désactivées.
+
 Le lecteur propose également des transitions douces, des titres défilants, une animation discrète pendant l’écoute, un logo de remplacement lorsqu’une pochette manque et une option pour garder la fenêtre au premier plan.
 
 ### Garder le contrôle de l’écoute
 
-- Réglage du volume à la position choisie dans la barre.
+- Réglage du volume à la position choisie dans la barre et bouton **Son/Muet**, avec conservation du volume.
+- Indicateur de connexion : arrêté, chargement, connexion stable, muet ou reconnexion.
 - Minuterie de sommeil personnalisable de **1 à 1 440 minutes**.
 - Baisse progressive du volume avant l’arrêt : désactivée, 15, 30 ou 60 secondes.
 - Reconnexion automatique avec compte à rebours et bouton **Réessayer maintenant**.
@@ -57,14 +64,14 @@ Le lecteur propose également des transitions douces, des titres défilants, une
 - Réduction près de l’horloge Windows.
 - Notifications de changement de titre et options de lancement configurables.
 
-Les demandes dépendent du catalogue et des règles de la radio. Une demande acceptée n’entraîne pas une lecture immédiate ; le délai varie selon la programmation.
+Les demandes dépendent du catalogue et des règles de la radio. Une demande acceptée n’entraîne pas une lecture immédiate. Le délai observé est d’environ **10 à 15 minutes**, à titre indicatif. Les horaires de la file peuvent évoluer et toutes les demandes acceptées n’y figurent pas nécessairement déjà.
 
 ## Installer sur Windows
 
 ### Avec l’installateur
 
 1. Fermez l’ancienne version de Radio IN si elle est ouverte.
-2. Téléchargez **RadioIN-Beta-1.2-Setup.exe**.
+2. Téléchargez **RadioIN-Beta-1.3-Setup.exe**.
 3. Lancez le fichier et suivez l’assistant.
 4. Ouvrez Radio IN depuis le menu Démarrer ou le raccourci choisi.
 
@@ -72,7 +79,7 @@ L’installation concerne votre compte Windows et ne demande pas de droits admin
 
 ### En version portable
 
-1. Téléchargez **RadioIN-Beta-1.2-Windows.zip**.
+1. Téléchargez **RadioIN-Beta-1.3-Windows.zip**.
 2. Extrayez **tout le contenu** dans un dossier accessible en écriture.
 3. Lancez **RadioIN.exe** depuis ce dossier.
 
@@ -88,7 +95,7 @@ La vérification au démarrage est activée par défaut et peut être désactiv�
 
 - **Version installée :** l’installateur EXE est privilégié.
 - **Version portable à partir de la Bêta 1.2 :** les prochaines mises à jour peuvent utiliser le ZIP, avec copie de secours et restauration des fichiers remplacés si une erreur survient pendant l’opération.
-- **Depuis la Bêta 1.1 :** le passage à la Bêta 1.2 utilise l’installateur EXE.
+- **Depuis la Bêta 1.1 :** le passage à la Bêta 1.3 utilise l’installateur EXE.
 - **Ancienne version sans recherche intégrée :** téléchargez la nouvelle version depuis les releases et installez-la manuellement.
 
 Vos favoris et réglages sont conservés lors des mises à jour.
@@ -121,17 +128,13 @@ Le menu **⋯** permet d’exporter ou d’importer une sauvegarde. La réinitia
 
 Les journaux de diagnostic restent sur votre PC : aucun envoi automatique. **Menu ⋯ → À propos** permet d’ouvrir les dossiers utiles. La désinstallation Windows conserve les favoris et les réglages personnels.
 
-## À venir — Bêta 1.3 Windows
+## Nouveautés de la Bêta 1.3
 
-La prochaine version est en préparation, sans date de sortie annoncée. Les évolutions prévues comprennent :
+La file **À venir**, les sauvegardes automatiques des favoris, le bouton Muet, les réglages de lisibilité et l’historique de session sont disponibles.
 
-- Une file **« À venir »** avec pochettes, artistes, horaires estimés et compte à rebours.
-- L’identification des demandes auditeur dans cette file.
-- Des sauvegardes automatiques des favoris avec restauration.
-- Un bouton Muet, des réglages de lisibilité et d’animations.
-- Un historique des morceaux diffusés pendant la session d’écoute.
+**[Consulter les notes complètes de la Bêta 1.3](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.0-beta)**
 
-**Ces fonctions ne sont pas encore disponibles dans la Bêta 1.2.** Le développement se concentre actuellement sur Windows ; les évolutions Android sont en pause.
+Le développement se concentre actuellement sur Windows ; les évolutions Android sont en pause.
 
 ## Signaler un problème ou proposer une idée
 
