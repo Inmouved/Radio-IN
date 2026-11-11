@@ -1,2 +1,149 @@
-# Radio-IN
-Application officielle Radio IN pour Windows et Android
+# Radio IN
+
+L’application officielle pour écouter **Radio IN en direct**, consulter les derniers titres diffusés et demander vos morceaux depuis un lecteur compact.
+
+**[Écouter la radio dans le navigateur](https://radio-in.duckdns.org/public/radio_in)** · **[Téléchargements et notes de version](https://github.com/Inmouved/Radio-IN/releases)** · **[Signaler un problème](https://github.com/Inmouved/Radio-IN/issues/new)**
+
+## Télécharger
+
+| Plateforme | Version et disponibilité |
+| --- | --- |
+| **Windows** | **Bêta 1.2** disponible — installateur ou version portable |
+| **Android** | Développement en pause — aucun APK publié dans les releases de ce dépôt pour le moment |
+
+### Windows — Bêta 1.2
+
+- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.2.0-beta/RadioIN-Beta-1.2-Setup.exe)**
+- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.2.0-beta/RadioIN-Beta-1.2-Windows.zip)**
+- **[Lire les nouveautés de la Bêta 1.2](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.2.0-beta)**
+
+**Configuration requise :** Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 ou supérieur et une connexion Internet. Le moteur audio est inclus : VLC n’a pas besoin d’être installé.
+
+> Les versions actuelles sont des bêtas. Les retours permettent d’améliorer le lecteur et de corriger les problèmes rencontrés.
+
+## Fonctionnalités Windows
+
+### Écouter et retrouver les titres
+
+- Écoute du direct avec le titre, l’artiste et la pochette du morceau.
+- Historique des derniers titres diffusés.
+- Catalogue avec recherche et demandes de titres.
+- Favoris : ajout depuis le lecteur, l’historique ou le catalogue, recherche et tri.
+- Messages de confirmation, de refus et d’erreur de demande intégrés au lecteur.
+- Export et import des favoris et des réglages.
+
+### Personnaliser le lecteur
+
+Quatre modes d’affichage :
+
+| Mode | Affichage |
+| --- | --- |
+| **Compact** | Lecteur et accès à l’historique et aux demandes |
+| **Réduit** | Nom de la radio et titre diffusé ; commandes accessibles au survol |
+| **Large** | Lecteur, historique et catalogue de demandes affichés ensemble |
+| **Pochette** | Grande couverture carrée avec commandes au survol |
+
+Six designs sont disponibles : **Actuel, Sombre, Flamme, Vert, Bleu et Auto**.
+
+Le lecteur propose également des transitions douces, des titres défilants, une animation discrète pendant l’écoute, un logo de remplacement lorsqu’une pochette manque et une option pour garder la fenêtre au premier plan.
+
+### Garder le contrôle de l’écoute
+
+- Réglage du volume à la position choisie dans la barre.
+- Minuterie de sommeil personnalisable de **1 à 1 440 minutes**.
+- Baisse progressive du volume avant l’arrêt : désactivée, 15, 30 ou 60 secondes.
+- Reconnexion automatique avec compte à rebours et bouton **Réessayer maintenant**.
+- Touches multimédias Lecture/Pause et Arrêt, avec option d’utilisation en arrière-plan.
+- Réduction près de l’horloge Windows.
+- Notifications de changement de titre et options de lancement configurables.
+
+Les demandes dépendent du catalogue et des règles de la radio. Une demande acceptée n’entraîne pas une lecture immédiate ; le délai varie selon la programmation.
+
+## Installer sur Windows
+
+### Avec l’installateur
+
+1. Fermez l’ancienne version de Radio IN si elle est ouverte.
+2. Téléchargez **RadioIN-Beta-1.2-Setup.exe**.
+3. Lancez le fichier et suivez l’assistant.
+4. Ouvrez Radio IN depuis le menu Démarrer ou le raccourci choisi.
+
+L’installation concerne votre compte Windows et ne demande pas de droits administrateur. Le raccourci Bureau est facultatif.
+
+### En version portable
+
+1. Téléchargez **RadioIN-Beta-1.2-Windows.zip**.
+2. Extrayez **tout le contenu** dans un dossier accessible en écriture.
+3. Lancez **RadioIN.exe** depuis ce dossier.
+
+Conservez les fichiers DLL et le dossier `plugins` avec le programme. Ne lancez pas le lecteur directement depuis l’archive ZIP.
+
+Pour télécharger l’application, choisissez les fichiers joints à la release. Les archives automatiques **Source code (zip)** et **Source code (tar.gz)** proposées par GitHub ne sont pas les versions portables du lecteur.
+
+## Mettre à jour
+
+Dans le lecteur : **menu ⋯ → Rechercher une mise à jour**.
+
+La vérification au démarrage est activée par défaut et peut être désactivée. Le téléchargement laisse la radio jouer ; l’application vérifie le fichier avant de proposer son installation.
+
+- **Version installée :** l’installateur EXE est privilégié.
+- **Version portable à partir de la Bêta 1.2 :** les prochaines mises à jour peuvent utiliser le ZIP, avec copie de secours et restauration des fichiers remplacés si une erreur survient pendant l’opération.
+- **Depuis la Bêta 1.1 :** le passage à la Bêta 1.2 utilise l’installateur EXE.
+- **Ancienne version sans recherche intégrée :** téléchargez la nouvelle version depuis les releases et installez-la manuellement.
+
+Vos favoris et réglages sont conservés lors des mises à jour.
+
+## Raccourcis clavier
+
+| Raccourci | Action |
+| --- | --- |
+| `Ctrl + E` | Lecture / arrêt |
+| `Ctrl + ↑` / `Ctrl + ↓` | Ajuster le volume |
+| `Ctrl + M` | Passer au mode d’affichage suivant |
+| `Ctrl + D` | Passer au design suivant |
+| `Ctrl + F` | Ajouter le titre en cours aux favoris |
+| `Ctrl + L` | Ouvrir les favoris |
+| `Ctrl + H` | Ouvrir l’historique |
+| `Ctrl + R` | Ouvrir les demandes de titres |
+| `Ctrl + N` | Activer ou désactiver les notifications de titre |
+
+Le bouton **−** réduit le lecteur près de l’horloge. Le bouton **×** ferme l’application et arrête le son.
+
+## Favoris, réglages et diagnostic
+
+Les données Windows sont conservées localement dans :
+
+```text
+%LOCALAPPDATA%\RadioIN
+```
+
+Le menu **⋯** permet d’exporter ou d’importer une sauvegarde. La réinitialisation des réglages conserve les favoris.
+
+Les journaux de diagnostic restent sur votre PC : aucun envoi automatique. **Menu ⋯ → À propos** permet d’ouvrir les dossiers utiles. La désinstallation Windows conserve les favoris et les réglages personnels.
+
+## À venir — Bêta 1.3 Windows
+
+La prochaine version est en préparation, sans date de sortie annoncée. Les évolutions prévues comprennent :
+
+- Une file **« À venir »** avec pochettes, artistes, horaires estimés et compte à rebours.
+- L’identification des demandes auditeur dans cette file.
+- Des sauvegardes automatiques des favoris avec restauration.
+- Un bouton Muet, des réglages de lisibilité et d’animations.
+- Un historique des morceaux diffusés pendant la session d’écoute.
+
+**Ces fonctions ne sont pas encore disponibles dans la Bêta 1.2.** Le développement se concentre actuellement sur Windows ; les évolutions Android sont en pause.
+
+## Signaler un problème ou proposer une idée
+
+Ouvrez une **[issue GitHub](https://github.com/Inmouved/Radio-IN/issues/new)** en précisant :
+
+- La version de Radio IN et votre version de Windows.
+- Les étapes pour reproduire le problème.
+- Le résultat attendu et ce qui se produit réellement.
+- Une capture d’écran si elle aide à comprendre le problème.
+
+Si vous joignez un journal, retirez les informations personnelles que vous ne souhaitez pas publier. Ne publiez jamais de mot de passe ni de clé API.
+
+---
+
+**Radio IN** · **[Écouter en ligne](https://radio-in.duckdns.org/public/radio_in)** · **[Toutes les versions](https://github.com/Inmouved/Radio-IN/releases)**
