@@ -9,7 +9,14 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 | Plateforme | Version et disponibilité |
 | --- | --- |
 | **Windows** | **Bêta 1.3** disponible — installateur ou version portable |
-| **Android** | Développement en pause — aucun APK publié dans les releases de ce dépôt pour le moment |
+| **Android** | **Bêta 1 Android** disponible — APK universel (Android 8+) |
+
+### Android — Bêta 1
+
+- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.0.0-beta/RadioIN-Beta-1-Android.apk)**
+- **[Lire les notes et instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.0.0-beta)**
+
+Installation hors Google Play. Compatible Android 8.0 ou supérieur, appareils 32 et 64 bits.
 
 ### Windows — Bêta 1.3
 
@@ -134,7 +141,7 @@ La file **À venir**, les sauvegardes automatiques des favoris, le bouton Muet, 
 
 **[Consulter les notes complètes de la Bêta 1.3](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.0-beta)**
 
-Le développement se concentre actuellement sur Windows ; les évolutions Android sont en pause.
+La Bêta 1 Android est publiée pour essai hors Google Play.
 
 ## Signaler un problème ou proposer une idée
 
