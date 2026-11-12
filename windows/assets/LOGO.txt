@@ -1,0 +1,10 @@
+Logo approuvé : carré vert arrondi et symbole noir de diffusion radio.
+Source approuvée : RadioIN-logo-vert-apercu-validation.png.
+Traitement via l'outil image_gen intégré, mode édition sur référence.
+Prompt final : Preserve the approved green rounded square and black radio
+symbol exactly. Remove only the white area outside the green tile to genuine
+transparent alpha. Keep green interior opaque. No redesign, no added elements,
+no shadows. Clean antialiased boundary. PNG with alpha.
+Le PNG livré : outputs/RadioIN-logo-vert-transparent.png.
+app.png : déclinaison 256 px ; app.ico : neuf tailles compatibles Windows.
+Les deux fichiers sont intégrés aux ressources du lecteur.

@@ -1,0 +1,26 @@
+# Build output and local development files
+**/bin/
+**/obj/
+**/test-data/
+*.user
+*.suo
+*.log
+*-test.txt
+*-preview.png
+verification.txt
+layouts-test.txt
+audio-test.txt
+queue-live-test.txt
+update-live-test.txt
+instance-*.txt
+
+# Local signing material and generated releases
+private/
+outputs/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.pfx
+*.snk
+

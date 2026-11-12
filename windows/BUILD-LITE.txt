@@ -1,0 +1,25 @@
+Radio IN — Bêta 1 PUBLIC
+
+Le script build-lite.ps1 est la compilation sans téléchargement de dépendances
+utilisée pour les versions livrées. Il utilise le compilateur C# du SDK .NET 8,
+les assemblies .NET Framework de Windows et les bibliothèques VLC installées.
+Les chemins du SDK et de VLC sont définis dans ce script.
+Commande : powershell -NoProfile -File build-lite.ps1
+
+Le lecteur cible .NET Framework 4.8 en 64 bits. Le SDK n'est pas requis sur le
+PC destinataire. Les modules natifs sélectionnés sont nécessaires au flux MP3
+HTTPS de la radio. Conserver les licences avec le logiciel distribué.
+
+Le projet RadioIN.csproj permet aussi une compilation SDK classique avec les
+assemblies de référence .NET Framework 4.8 installées. Les DLL et modules VLC
+doivent ensuite être copiés à côté du programme (voir la liste dans le script).
+
+Diagnostics disponibles : --public-test, --scroll-test, --startup-test 0/1/2/3, --icon-test, --beta-test,
+--features-test, --layout-test, --self-test.
+--startup-test 2 --catalogue-failure-test simule un catalogue indisponible.
+--instance-host-test TOKEN et --instance-client-test TOKEN vérifient l'activation
+d'une instance réduite via un canal local isolé, sans viser l'instance normale.
+Le démarrage Windows est facultatif et jamais activé par les tests.
+Ces diagnostics utilisent un dossier test-data séparé des préférences utilisateur.
+Ils ne soumettent aucune demande de titre à la radio. Les réponses acceptation /
+refus sont simulées ; seule la lecture et la consultation des API sont réelles.

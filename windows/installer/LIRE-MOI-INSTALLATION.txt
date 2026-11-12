@@ -1,0 +1,76 @@
+RADIO IN — BÊTA 1.3
+Windows 10/11 64 bits ; .NET Framework 4.8 ou supérieur.
+Le moteur audio est inclus : aucune installation de VLC nécessaire.
+
+NOUVEAUTÉS
+- À venir : pochette, titre, artiste, date et heure prévues, compte à rebours
+  et indication Demande auditeur. Actualisation toutes les 15 secondes.
+- La liste reproduit la file annoncée par AzuraCast (jusqu'à 25 titres).
+  Sa longueur est réglée côté radio. Les horaires restent estimatifs.
+- Les listes anciennes ou indisponibles sont signalées ; aucun horaire absent
+  n'est inventé. Une ancienne liste est retirée après environ 100 secondes.
+- Si le titre et l'artiste sont déjà annoncés, un avertissement apparaît avant
+  une nouvelle demande. Un second clic dans les 20 secondes permet de confirmer.
+- Demandes : délai observé d'environ 10 à 15 minutes, variable et non garanti.
+- Favoris : 20 copies automatiques locales, créées lors des changements de liste.
+  Menu ⋯ > Restaurer des favoris fusionne une copie avec les favoris actuels.
+- Bouton Son/Muet sur le lecteur et en mode Pochette. Le réglage du volume
+  est conservé et peut être modifié pendant le muet.
+- Indicateur de connexion : arrêté, chargement, stable, muet ou reconnexion.
+- Menu ⋯ > Lisibilité, opacité et animations : opacité de 70 à 100 %, textes
+  normaux, grands ou très grands, animations normales, discrètes ou désactivées.
+- Menu ⋯ > Copier le titre et le lien : titre, artiste et lien de la radio.
+- Menu ⋯ > Ma session d'écoute : jusqu'à 500 diffusions observées pendant
+  l'écoute, avec ajout aux favoris. Cet historique est effacé à la fermeture.
+- Nouveautés présentées au premier lancement de cette version, avec fermeture.
+  Elles restent consultables dans le menu ⋯.
+- Les fonctions et corrections des versions précédentes sont incluses.
+
+UTILISATION
+Le bouton À venir est visible en mode Compact. Le menu ⋯ donne accès à la
+file et à la session dans les quatre modes. Retour réaffiche le lecteur.
+Modes Compact, Réduit, Large et Pochette ; designs Actuel, Sombre, Flamme,
+Vert, Bleu et Auto. Le bouton − réduit près de l'horloge ; × quitte et coupe le son.
+Ctrl+E : lecture/arrêt ; Ctrl+Haut/Bas : volume ; Ctrl+M : mode suivant ;
+Ctrl+D : design suivant ; Ctrl+F : ajouter aux favoris ; Ctrl+L : favoris ;
+Ctrl+H : historique ; Ctrl+R : demandes ; Ctrl+N : notifications.
+Les touches Suivant/Précédent ne changent pas les titres d'une radio en direct.
+
+INSTALLATION
+Fermer Radio IN puis lancer RadioIN-Beta-1.3-Setup.exe. Installation pour
+le compte Windows courant, sans demande de droits administrateur.
+Dossier proposé : %LOCALAPPDATA%\Programs\Radio IN
+Raccourci menu Démarrer ; raccourci Bureau facultatif. L'installation n'active
+pas le lancement avec Windows ; si déjà activé, son chemin est actualisé.
+La mise à jour conserve les favoris et réglages.
+
+VERSION PORTABLE
+Extraire tout RadioIN-Beta-1.3-Windows.zip dans un dossier accessible en écriture,
+puis lancer RadioIN.exe. Conserver les DLL et plugins avec le programme.
+
+MISES À JOUR
+Menu ⋯ > Rechercher une mise à jour.
+Vérification au lancement activée par défaut et désactivable. Les vérifications
+réussies sont espacées d'au moins 6 heures ; recherche manuelle à tout moment.
+Source : https://github.com/Inmouved/Radio-IN
+Le téléchargement laisse la radio jouer. Taille, SHA-256 et version vérifiés.
+Version installée : installateur EXE privilégié ; terminer l'assistant.
+Version portable à partir de 1.2 : ZIP privilégié ; remplacement après fermeture
+et relance du lecteur. Copie de secours et restauration si le remplacement échoue.
+Les fichiers personnels étrangers au lecteur restent conservés.
+Copies et résultat : %LOCALAPPDATA%\RadioIN\updates\<version-identifiant>\
+En cas de coupure électrique au milieu du remplacement, réextraire le ZIP ou
+restaurer manuellement le dossier backup si nécessaire.
+Les versions sans recherche intégrée se mettent à jour manuellement.
+
+DONNÉES ET SAUVEGARDES
+Préférences : %LOCALAPPDATA%\RadioIN\preferences.json
+Copies de favoris : %LOCALAPPDATA%\RadioIN\favorites-backups
+Export/import disponibles dans le menu ⋯. Réinitialiser les réglages conserve
+les favoris. Le lancement avec Windows est une option distincte.
+Journaux locaux : %LOCALAPPDATA%\RadioIN\logs\RadioIN.log
+Aucun envoi automatique. Menu ⋯ > À propos ouvre les dossiers utiles.
+La désinstallation Windows conserve les favoris, réglages et copies personnelles.
+
+Licence moteur VLC : VLC-COPYING.txt
+Sources VLC : https://www.videolan.org/vlc/download-sources.html
