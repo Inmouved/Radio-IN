@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace RadioIN;
 
@@ -27,6 +28,13 @@ sealed class UpdateClient : IDisposable
     internal const string Repository = "https://github.com/Inmouved/Radio-IN";
     internal const string Api = "https://api.github.com/repos/Inmouved/Radio-IN/releases?per_page=100";
     internal const long MaxInstallerSize = 100 * 1024 * 1024;
+    internal static readonly TimeSpan AutomaticCheckInterval = TimeSpan.FromMinutes(30);
+    internal static bool AutomaticCheckDue(DateTime? lastCheckUtc, DateTime nowUtc)
+    {
+        if (!lastCheckUtc.HasValue) return true;
+        TimeSpan elapsed = nowUtc - lastCheckUtc.Value;
+        return elapsed < TimeSpan.Zero || elapsed >= AutomaticCheckInterval;
+    }
     readonly HttpClient http;
     internal UpdateClient(HttpMessageHandler? handler = null)
     {
@@ -162,19 +170,33 @@ public partial class MainWindow
     UpdateRelease? offeredUpdate;
     string? verifiedInstaller;
     bool updateChecking, updateDownloading;
+    DispatcherTimer? automaticUpdateTimer;
     void InitializeUpdater()
     {
-        Closing += (_, _) => { updateLifetime.Cancel(); updateOperation?.Cancel(); updateWindow?.Close(); };
+        Closing += (_, _) => { automaticUpdateTimer?.Stop(); updateLifetime.Cancel(); updateOperation?.Cancel(); updateWindow?.Close(); };
         if (tray != null) tray.BalloonTipClicked += (_, _) => Dispatcher.Invoke(() => { if (offeredUpdate != null) { RestoreWindow(); ShowUpdateWindow(); } });
         Loaded += async (_, _) => {
             await WaitForStartup();
-            if (testMode || !preferences.CheckUpdatesOnStartup) return;
+            if (testMode) return;
+            ConfigureAutomaticUpdateTimer();
+            if (!preferences.CheckUpdatesOnStartup) return;
             try { await Task.Delay(2500, updateLifetime.Token); } catch(OperationCanceledException) { return; }
             if (!closed) await CheckUpdatesAsync(false);
         };
         if (Environment.GetCommandLineArgs().Contains("--update-test")) Loaded += async (_, _) => { await WaitForStartup(); await TestUpdates(); };
         if (Environment.GetCommandLineArgs().Contains("--update-live-test")) Loaded += async (_, _) => { await WaitForStartup(); await TestLiveUpdates(); };
         if (Environment.GetCommandLineArgs().Contains("--update-ui-test")) Loaded += async (_, _) => { await WaitForStartup(); await CheckUpdatesAsync(true); };
+    }
+    void ConfigureAutomaticUpdateTimer()
+    {
+        if (testMode || closed || !preferences.CheckUpdatesOnStartup) { automaticUpdateTimer?.Stop(); return; }
+        if (automaticUpdateTimer == null) {
+            automaticUpdateTimer = new DispatcherTimer { Interval = UpdateClient.AutomaticCheckInterval };
+            automaticUpdateTimer.Tick += async (_, _) => {
+                if (!closed && preferences.CheckUpdatesOnStartup && offeredUpdate == null) await CheckUpdatesAsync(false);
+            };
+        }
+        automaticUpdateTimer.Start();
     }
     void AddUpdateOptions(ContextMenu menu)
     {
@@ -188,8 +210,8 @@ public partial class MainWindow
     {
         var check = new MenuItem { Header = "Rechercher une mise à jour…" };
         check.Click += async (_, _) => await CheckUpdatesAsync(true); items.Add(check);
-        var auto = new MenuItem { Header = "Vérifier les mises à jour au démarrage", IsCheckable = true, IsChecked = preferences.CheckUpdatesOnStartup };
-        auto.Click += (_, _) => { preferences.CheckUpdatesOnStartup = auto.IsChecked; SavePreferences(); }; items.Add(auto);
+        var auto = new MenuItem { Header = "Vérifier au démarrage et toutes les 30 minutes", IsCheckable = true, IsChecked = preferences.CheckUpdatesOnStartup };
+        auto.Click += async (_, _) => { preferences.CheckUpdatesOnStartup = auto.IsChecked; SavePreferences(); ConfigureAutomaticUpdateTimer(); if (auto.IsChecked) await CheckUpdatesAsync(false); }; items.Add(auto);
     }
     void ShowUpdateWindow()
     {
@@ -225,8 +247,7 @@ public partial class MainWindow
         if (closed) return;
         if (manual) ShowUpdateWindow();
         if (updateChecking || updateDownloading) return;
-        var elapsed = preferences.LastUpdateCheckUtc.HasValue ? DateTime.UtcNow - preferences.LastUpdateCheckUtc.Value : TimeSpan.MaxValue;
-        if (!manual && elapsed >= TimeSpan.Zero && elapsed < TimeSpan.FromHours(6)) return;
+        if (!manual && !UpdateClient.AutomaticCheckDue(preferences.LastUpdateCheckUtc,DateTime.UtcNow)) return;
         updateChecking = true; if (updateMessage != null) updateMessage.Text = "Recherche des mises à jour…";
         offeredUpdate = null; verifiedInstaller = null;
         if (updateDownload != null) updateDownload.Visibility = updateInstall!.Visibility = Visibility.Collapsed;

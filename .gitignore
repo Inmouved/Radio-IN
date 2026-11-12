@@ -17,6 +17,9 @@ instance-*.txt
 # Local signing material and generated releases
 private/
 outputs/
+/RadioIN-Beta-*-Setup.exe*
+/RadioIN-Beta-*-Windows.zip*
+/RadioIN-Beta-[0-9]*/
 *.apk
 *.aab
 *.jks

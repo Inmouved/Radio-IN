@@ -182,7 +182,7 @@ public partial class MainWindow
         menu.Items.Add(display);
         var help = new MenuItem { Header = "Aide" };
         Add(help,"Raccourcis clavier…",() => MessageBox.Show(this,"Ctrl+E : lecture / arrêt\nCtrl+↑ / ↓ : volume\nCtrl+M : mode suivant\nCtrl+D : design suivant\nCtrl+F : ajouter le titre aux favoris\nCtrl+L : liste des favoris\nCtrl+H : historique\nCtrl+R : demandes de titres\nCtrl+N : notifications\nÉchap : fermer le panneau (Compact)","Radio IN — raccourcis"));
-        Add(help,"Nouveautés de la Bêta 1.3.1…",ShowReleaseNews);
+        Add(help,"Nouveautés de la Bêta 1.3.2…",ShowReleaseNews);
         menu.Items.Add(help);
     }
     void ShowReleaseNews()
@@ -190,7 +190,7 @@ public partial class MainWindow
         if (newsWindow != null) { newsWindow.Activate(); return; }
         preferences.LastSeenVersion = AppInfo.Version; SavePreferences();
         var body = new StackPanel(); body.Children.Add(new TextBlock { Text = AppInfo.Version, Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,12) });
-        body.Children.Add(new TextBlock { Text = "Le menu ⋯ est réorganisé par thèmes pour retrouver plus facilement les commandes. L’historique est maintenant accessible depuis ce menu.\n\nVos favoris, réglages et raccourcis restent disponibles.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(new TextBlock { Text = "Le menu ⋯ est organisé par thèmes et l’historique est accessible depuis ce menu.\n\nLa recherche automatique des mises à jour se relance toutes les 30 minutes lorsque l’option est activée. Vous pouvez aussi lancer une recherche manuelle.\n\nVos favoris, réglages et raccourcis restent disponibles.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
         var close = new Button { Content = "C’est parti", Margin = new Thickness(0,16,0,0) }; body.Children.Add(close);
         newsWindow = CreateInfoWindow("RADIO IN / NOUVEAUTÉS",body,490); close.Click += (_, _) => newsWindow?.Close(); newsWindow.Closed += (_, _) => newsWindow = null; newsWindow.Show();
     }

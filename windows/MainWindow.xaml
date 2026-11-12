@@ -1,4 +1,4 @@
-<Window x:Class="RadioIN.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:RadioIN;assembly=RadioIN" Title="Radio IN — Bêta 1.3.1" Width="440" SizeToContent="Height" ResizeMode="CanMinimize" WindowStyle="None" Background="#101927" FontFamily="Segoe UI" FontSize="13" WindowStartupLocation="CenterScreen">
+<Window x:Class="RadioIN.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:RadioIN;assembly=RadioIN" Title="Radio IN — Bêta 1.3.2" Width="440" SizeToContent="Height" ResizeMode="CanMinimize" WindowStyle="None" Background="#101927" FontFamily="Segoe UI" FontSize="13" WindowStartupLocation="CenterScreen">
  <Border BorderBrush="#40515D71" BorderThickness="1">
  <Grid ClipToBounds="True" Background="#101927">
   <Border x:Name="BackdropLayer" Opacity="0.8" IsHitTestVisible="False"><Border.Background><ImageBrush x:Name="Backdrop" Stretch="UniformToFill"/></Border.Background><Border.Effect><BlurEffect Radius="22"/></Border.Effect></Border>

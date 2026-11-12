@@ -36,6 +36,11 @@ public partial class MainWindow
             Check(preferences.CheckUpdatesOnStartup, "Vérification au démarrage activée par défaut");
             Check(UpdateClient.WindowsVersion("windows-v1.10.0-beta")! > UpdateClient.WindowsVersion("windows-v1.9.0-beta")!, "Comparaison numérique, pas alphabétique");
             Check(UpdateClient.WindowsVersion("windows-v" + new Version(AppInfo.WindowsVersion.Major, AppInfo.WindowsVersion.Minor, AppInfo.WindowsVersion.Build, AppInfo.WindowsVersion.Revision + 1).ToString(4) + "-beta")! > AppInfo.WindowsVersion, "Révisions à quatre nombres reconnues");
+            var nowUtc = DateTime.UtcNow;
+            Check(UpdateClient.AutomaticCheckDue(null,nowUtc),"Vérification automatique initiale autorisée");
+            Check(!UpdateClient.AutomaticCheckDue(nowUtc.AddMinutes(-29),nowUtc),"Nouvelle vérification retenue moins de 30 minutes");
+            Check(UpdateClient.AutomaticCheckDue(nowUtc.AddMinutes(-31),nowUtc),"Nouvelle vérification automatique après 30 minutes");
+            Check(UpdateClient.AutomaticCheckDue(nowUtc.AddMinutes(1),nowUtc),"Horloge modifiée : vérification automatique non bloquée");
             Check(UpdateClient.WindowsVersion("android-v99.0.0-beta") == null, "Versions Android ignorées");
             Check(UpdateClient.Parse(Json(Release("windows-v9.0.0-beta", true))).Count == 0, "Brouillons ignorés");
             Check(UpdateClient.Parse(Json(Release("windows-v1.2.0-beta", digest:""))).Count == 0, "Empreinte absente refusée");
@@ -46,6 +51,10 @@ public partial class MainWindow
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.1.0-beta"), Release("windows-v1.9.0-beta"), Release("windows-v1.10.0-beta"), Release("android-v99.0.0-beta"))) }))) {
                 var latest = await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None);
                 Check(latest?.Version == new Version(1,10,0,0), "Plus haute version Windows bêta sélectionnée");
+            }
+            using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.3.1-beta"),Release("windows-v1.3.2-beta"))) }))) {
+                var fromPrevious = await client.FindAsync(new Version(1,3,1,0),CancellationToken.None);
+                Check(fromPrevious?.Version == new Version(1,3,2,0),"Bêta 1.3.1 détecte la Bêta 1.3.2");
             }
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.0.0-beta"), Release("windows-v1.1.0-beta"))) }))) Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "Aucune réinstallation de version identique ou antérieure");
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)))) await Rejected(async () => { await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None); }, "Limite GitHub gérée");
@@ -73,7 +82,7 @@ public partial class MainWindow
                 UpdateClient.VerifyInstaller(paddedSetup, new UpdateRelease { Version = new Version(1,1,0,1), Sha256 = TestHash(File.ReadAllBytes(paddedSetup)) });
                 Check(true, "Installateur publié avec nom complété par des espaces accepté par le contrôle corrigé");
             }
-                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.3.1-Setup.exe"));
+                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.3.2-Setup.exe"));
             if (File.Exists(compatibleSetup)) {
                 var actual = System.Diagnostics.FileVersionInfo.GetVersionInfo(compatibleSetup);
                 Check(actual.ProductName == "Radio IN", "Nom du nouvel installateur compatible avec la comparaison stricte de Bêta 1.1");

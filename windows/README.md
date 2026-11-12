@@ -1,6 +1,6 @@
 # Code source Windows
 
-Ce dossier contient le code source Windows de Radio IN. La **Bêta 1.3.1** regroupe les options par thèmes et déplace l’historique dans le menu ⋯.
+Ce dossier contient le code source Windows de Radio IN. La **Bêta 1.3.2** retente la recherche de mises à jour toutes les 30 minutes lorsque l’option automatique est activée.
 
 ## Prérequis de compilation
 

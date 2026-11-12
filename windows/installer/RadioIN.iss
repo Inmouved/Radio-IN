@@ -1,5 +1,5 @@
 ﻿; Build with Inno Setup 6.7.4 or later. Keep AppId for future updates.
-#define ReleaseDir "..\..\RadioIN-Beta-1.3.1"
+#define ReleaseDir "..\..\RadioIN-Beta-1.3.2"
 #ifdef InstallerVerification
   #define RunKey "Software\RadioIN\InstallerVerification\Run"
 #else
@@ -13,16 +13,16 @@ AppId={{E7FBC8AB-8428-4C3A-ACAE-982835D14882}
 AppId={{1A790AB8-CA10-43DA-A9E8-059608B4D531}
 #endif
 AppName=Radio IN
-AppVersion=Bêta 1.3.1
-AppVerName=Radio IN — Bêta 1.3.1
+AppVersion=Bêta 1.3.2
+AppVerName=Radio IN — Bêta 1.3.2
 AppPublisher=Radio IN
 AppPublisherURL=https://radio-in.duckdns.org/public/radio_in
 AppSupportURL=https://radio-in.duckdns.org/public/radio_in
-VersionInfoVersion=1.3.1.0
+VersionInfoVersion=1.3.2.0
 VersionInfoProductName=Radio IN
-VersionInfoProductVersion=1.3.1.0
-VersionInfoProductTextVersion=1.3.1-beta
-VersionInfoDescription=Installation de Radio IN — Bêta 1.3.1
+VersionInfoProductVersion=1.3.2.0
+VersionInfoProductTextVersion=1.3.2-beta
+VersionInfoDescription=Installation de Radio IN — Bêta 1.3.2
 DefaultDirName={localappdata}\Programs\Radio IN
 #ifdef InstallerVerification
 DefaultGroupName=Radio IN Verification Beta 1.3
@@ -46,7 +46,7 @@ DisableProgramGroupPage=yes
 DisableDirPage=no
 DisableWelcomePage=yes
 OutputDir=..\..
-OutputBaseFilename=RadioIN-Beta-1.3.1-Setup
+OutputBaseFilename=RadioIN-Beta-1.3.2-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 UsePreviousTasks=yes

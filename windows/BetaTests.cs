@@ -103,7 +103,7 @@ public partial class MainWindow
         string[] required = { "RadioIN.exe", "RadioIN.exe.config", "libvlc.dll", "libvlccore.dll", "plugins/access/libhttps_plugin.dll", "plugins/codec/libmpg123_plugin.dll" };
         using (var zip = ZipFile.Open(archive,ZipArchiveMode.Create)) foreach (string name in required) zip.CreateEntryFromFile(Path.Combine(AppContext.BaseDirectory,name),name);
         string hash = PortableUpdate.Hash(archive), stage = Path.Combine(root,"valid");
-        string distribution = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","RadioIN-Beta-1.3.1-Windows.zip"));
+        string distribution = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","RadioIN-Beta-1.3.2-Windows.zip"));
         if (File.Exists(distribution)) {
             var packaged = PortableUpdate.Extract(distribution,PortableUpdate.Hash(distribution),AppInfo.WindowsVersion,Path.Combine(root,"distribution"));
             check(packaged.Count == 26,"ZIP de distribution réel validé : programme, configuration, licences et 20 modules audio");
