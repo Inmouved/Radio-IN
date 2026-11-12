@@ -8,21 +8,22 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 | Plateforme | Version et disponibilité |
 | --- | --- |
-| **Windows** | **Bêta 1.3** disponible — installateur ou version portable |
-| **Android** | **Bêta 1 Android** disponible — APK universel (Android 8+) |
+| **Windows** | **Bêta 1.3.2** disponible — installateur ou version portable |
+| **Android** | **Bêta 1.1 Android** disponible — APK universel (Android 8+) |
 
-### Android — Bêta 1
+### Android — Bêta 1.1
 
-- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.0.0-beta/RadioIN-Beta-1-Android.apk)**
-- **[Lire les notes et instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.0.0-beta)**
+- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.1.0-beta/RadioIN-Beta-1.1-Android.apk)**
+- **[Lire les notes et instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.1.0-beta)**
+- **[Consulter le code source Android](android/README.md)**
 
-Installation hors Google Play. Compatible Android 8.0 ou supérieur, appareils 32 et 64 bits.
+Écran compact avec file « À venir », historique de session, favoris depuis les listes et recherche de mises à jour. Installation hors Google Play, compatible Android 8.0 ou supérieur, appareils 32 et 64 bits.
 
-### Windows — Bêta 1.3
+### Windows — Bêta 1.3.2
 
-- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.0-beta/RadioIN-Beta-1.3-Setup.exe)**
-- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.0-beta/RadioIN-Beta-1.3-Windows.zip)**
-- **[Lire les nouveautés de la Bêta 1.3](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.0-beta)**
+- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.2-beta/RadioIN-Beta-1.3.2-Setup.exe)**
+- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.2-beta/RadioIN-Beta-1.3.2-Windows.zip)**
+- **[Lire les nouveautés de la Bêta 1.3.2](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.2-beta)**
 - **[Consulter le code source Windows](windows/README.md)**
 
 **Configuration requise :** Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 ou supérieur et une connexion Internet. Le moteur audio est inclus : VLC n’a pas besoin d’être installé.
