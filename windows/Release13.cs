@@ -5,10 +5,12 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Threading;
 
 namespace RadioIN;
 sealed class FavoritesSnapshots
 {
+    static long lastTimestampTicks;
     internal sealed class Snapshot
     {
         public string Application { get; set; } = "RadioIN-Favorites";
@@ -26,7 +28,13 @@ sealed class FavoritesSnapshots
         string json = serializer.Serialize(favorites);
         if (json == last) return;
         Directory.CreateDirectory(root);
-        string path = Path.Combine(root,"favoris-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fffffff") + "-" + Guid.NewGuid().ToString("N") + ".json");
+        long ticks;
+        while (true) {
+            long previous = Interlocked.Read(ref lastTimestampTicks);
+            ticks = Math.Max(DateTime.UtcNow.Ticks, previous + 1);
+            if (Interlocked.CompareExchange(ref lastTimestampTicks,ticks,previous) == previous) break;
+        }
+        string path = Path.Combine(root,"favoris-" + new DateTime(ticks,DateTimeKind.Utc).ToString("yyyyMMdd-HHmmss-fffffff") + "-" + Guid.NewGuid().ToString("N") + ".json");
         string temp = path + ".tmp";
         File.WriteAllText(temp,serializer.Serialize(new Snapshot { Favorites = favorites })); File.Move(temp,path);
         last = json;
@@ -164,16 +172,25 @@ public partial class MainWindow
     }
     void AddRelease13Options(ContextMenu menu)
     {
-        void Add(string title,Action action) { var item = new MenuItem { Header = title }; item.Click += (_, _) => action(); menu.Items.Add(item); }
-        Add("À venir…",ShowUpcoming); Add("Ma session d’écoute…",ShowSessionHistory); Add("Copier le titre et le lien",CopyCurrentTrack);
-        Add("Restaurer des favoris…",ShowRestoreFavorites); Add("Lisibilité, opacité et animations…",ShowReadingSettings); Add("Nouveautés de la Bêta 1.3…",ShowReleaseNews);
+        void Add(ItemsControl parent,string title,Action action) { var item = new MenuItem { Header = title }; item.Click += (_, _) => action(); parent.Items.Add(item); }
+        var favorites = new MenuItem { Header = "Favoris" };
+        Add(favorites,"♡ Ajouter le titre aux favoris",AddFavorite); Add(favorites,"Mes favoris…",ShowFavorites); Add(favorites,"Restaurer des favoris…",ShowRestoreFavorites);
+        menu.Items.Add(favorites);
+        Add(menu,"À venir…",ShowUpcoming); Add(menu,"Ma session d’écoute…",ShowSessionHistory); Add(menu,"Copier le titre et le lien",CopyCurrentTrack);
+        var display = new MenuItem { Header = "Affichage" };
+        Add(display,"Lisibilité, opacité et animations…",ShowReadingSettings);
+        menu.Items.Add(display);
+        var help = new MenuItem { Header = "Aide" };
+        Add(help,"Raccourcis clavier…",() => MessageBox.Show(this,"Ctrl+E : lecture / arrêt\nCtrl+↑ / ↓ : volume\nCtrl+M : mode suivant\nCtrl+D : design suivant\nCtrl+F : ajouter le titre aux favoris\nCtrl+L : liste des favoris\nCtrl+H : historique\nCtrl+R : demandes de titres\nCtrl+N : notifications\nÉchap : fermer le panneau (Compact)","Radio IN — raccourcis"));
+        Add(help,"Nouveautés de la Bêta 1.3.1…",ShowReleaseNews);
+        menu.Items.Add(help);
     }
     void ShowReleaseNews()
     {
         if (newsWindow != null) { newsWindow.Activate(); return; }
         preferences.LastSeenVersion = AppInfo.Version; SavePreferences();
-        var body = new StackPanel(); body.Children.Add(new TextBlock { Text = "Bienvenue dans la Bêta 1.3", Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,12) });
-        body.Children.Add(new TextBlock { Text = "• À venir : pochettes, demandes et horaires estimés.\n• Sauvegardes automatiques de vos favoris.\n• Bouton Muet et indicateur de connexion.\n• Taille du texte, opacité et animations réglables.\n• Historique de votre session et copie du titre.\n\nLes nouvelles commandes sont accessibles dans le menu ⋯.\nLes heures de diffusion peuvent évoluer avec la programmation.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
+        var body = new StackPanel(); body.Children.Add(new TextBlock { Text = AppInfo.Version, Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,12) });
+        body.Children.Add(new TextBlock { Text = "Le menu ⋯ est réorganisé par thèmes pour retrouver plus facilement les commandes. L’historique est maintenant accessible depuis ce menu.\n\nVos favoris, réglages et raccourcis restent disponibles.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
         var close = new Button { Content = "C’est parti", Margin = new Thickness(0,16,0,0) }; body.Children.Add(close);
         newsWindow = CreateInfoWindow("RADIO IN / NOUVEAUTÉS",body,490); close.Click += (_, _) => newsWindow?.Close(); newsWindow.Closed += (_, _) => newsWindow = null; newsWindow.Show();
     }

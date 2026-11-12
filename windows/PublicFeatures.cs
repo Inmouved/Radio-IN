@@ -83,25 +83,25 @@ public partial class MainWindow
     }
     void AddPublicOptions(ContextMenu menu)
     {
-        menu.Items.Add(new Separator());
-        void Add(string text, Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); menu.Items.Add(item); }
-        Add("Exporter favoris et réglages…", ExportSettings);
-        Add("Importer une sauvegarde…", ImportSettings);
-        Add("Réinitialiser les réglages…", ConfirmResetSettings);
-        AddMediaOption(menu);
+        var backup = new MenuItem { Header = "Sauvegarde et réglages" };
+        void Add(MenuItem parent,string text,Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); parent.Items.Add(item); }
+        Add(backup,"Exporter favoris et réglages…",ExportSettings);
+        Add(backup,"Importer une sauvegarde…",ImportSettings);
+        Add(backup,"Réinitialiser les réglages…",ConfirmResetSettings);
+        menu.Items.Add(backup);
+        var startupMenu = new MenuItem { Header = "Démarrage" };
         var startup = new MenuItem { Header = "Lancer avec Windows", IsCheckable = true };
         try { startup.IsChecked = StartupRegistration.Enabled; } catch(Exception ex) { LocalLog.Write("Lecture démarrage Windows", ex); }
         startup.Click += (_, _) => {
             try { StartupRegistration.Set(startup.IsChecked); }
             catch(Exception ex) { startup.IsChecked = !startup.IsChecked; LocalLog.Write("Configuration démarrage Windows", ex); MessageBox.Show(this, "Impossible de modifier le démarrage Windows.", "Radio IN"); }
         };
-        menu.Items.Add(startup);
+        startupMenu.Items.Add(startup);
         var hidden = new MenuItem { Header = "Avec Windows : démarrer près de l’horloge", IsCheckable = true, IsChecked = preferences.LaunchHidden };
-        hidden.Click += (_, _) => { preferences.LaunchHidden = hidden.IsChecked; SavePreferences(); }; menu.Items.Add(hidden);
-        var autoplay = new MenuItem { Header = "Écouter automatiquement au lancement", IsCheckable = true, IsChecked = preferences.AutoPlay };
-        autoplay.Click += (_, _) => { preferences.AutoPlay = autoplay.IsChecked; SavePreferences(); }; menu.Items.Add(autoplay);
-        AddUpdateOptions(menu);
-        Add("À propos — " + AppInfo.Version, ShowAbout);
+        hidden.Click += (_, _) => { preferences.LaunchHidden = hidden.IsChecked; SavePreferences(); }; startupMenu.Items.Add(hidden);
+        menu.Items.Add(startupMenu);
+        var updates = new MenuItem { Header = "Mises à jour" }; AddUpdateOptions(updates); menu.Items.Add(updates);
+        var about = new MenuItem { Header = "À propos — " + AppInfo.Version }; about.Click += (_, _) => ShowAbout(); menu.Items.Add(about);
     }
     Window CreateInfoWindow(string title, UIElement content, double width = 510)
     {

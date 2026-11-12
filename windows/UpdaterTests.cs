@@ -73,7 +73,7 @@ public partial class MainWindow
                 UpdateClient.VerifyInstaller(paddedSetup, new UpdateRelease { Version = new Version(1,1,0,1), Sha256 = TestHash(File.ReadAllBytes(paddedSetup)) });
                 Check(true, "Installateur publié avec nom complété par des espaces accepté par le contrôle corrigé");
             }
-            string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.3-Setup.exe"));
+                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.3.1-Setup.exe"));
             if (File.Exists(compatibleSetup)) {
                 var actual = System.Diagnostics.FileVersionInfo.GetVersionInfo(compatibleSetup);
                 Check(actual.ProductName == "Radio IN", "Nom du nouvel installateur compatible avec la comparaison stricte de Bêta 1.1");

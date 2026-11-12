@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = 'Stop'
 $sourceDir = $PSScriptRoot
 $buildDir = Join-Path $sourceDir '../../work/lite-build'
-$outDir = Join-Path $sourceDir '../RadioIN-Beta-1.3'
+$outDir = Join-Path $sourceDir '../RadioIN-Beta-1.3.1'
 New-Item -ItemType Directory -Force -Path $buildDir,$outDir | Out-Null
 $xaml = Get-Content (Join-Path $sourceDir 'MainWindow.xaml') -Raw -Encoding UTF8
 $xml = [xml]$xaml

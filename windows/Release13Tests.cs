@@ -97,7 +97,16 @@ public partial class MainWindow
             Check(prefs.PlayerOpacity == 1 && prefs.TextScale == 1 && prefs.AnimationMode == 0,"Nouveaux réglages persistés");
             ShowReleaseNews(); Check(newsWindow != null && preferences.LastSeenVersion == AppInfo.Version,"Nouveautés affichées et version mémorisée"); newsWindow!.Close();
             Check(newsWindow == null,"Présentation des nouveautés fermable");
-            var menu = new ContextMenu(); AddRelease13Options(menu); Check(menu.Items.Count == 6,"Nouvelles commandes dans le menu");
+            var menu = new ContextMenu(); AddRelease13Options(menu);
+            var favoritesMenu = menu.Items.OfType<MenuItem>().Single(x => (string)x.Header == "Favoris");
+            Check(favoritesMenu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "♡ Ajouter le titre aux favoris") && favoritesMenu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Mes favoris…"),"Favoris regroupés et commandes conservées");
+            Check(menu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "À venir…") && menu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Aide"),"Commandes de lecture et aide regroupées");
+            Check(HistoryButton.Visibility == Visibility.Collapsed,"Historique retiré de la barre et accessible via le menu options");
+            ShowOptions();
+            var options = OptionsButton.ContextMenu!;
+            Check(options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Historique…"),"Historique présent dans le menu ⋯");
+            Check(options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Écoute et notifications") && options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Mises à jour"),"Réglages d’écoute et mises à jour accessibles dans les sous-menus");
+            options.IsOpen = false;
             playing = false; retryAt = null; UpdateConnectionBadge(); Check(ConnectionBadge.Text.Contains("Arrêté"),"Indicateur connexion : arrêté");
             playing = true; retryAt = DateTime.UtcNow.AddSeconds(10); UpdateConnectionBadge(); Check(ConnectionBadge.Text.Contains("Reconnexion"),"Indicateur connexion : reconnexion");
             playing = false; retryAt = null;

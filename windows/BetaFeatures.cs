@@ -169,8 +169,16 @@ public partial class MainWindow
     }
     void AddMediaOption(ContextMenu menu)
     {
+        AddMediaOption(menu.Items);
+    }
+    void AddMediaOption(MenuItem menu)
+    {
+        AddMediaOption(menu.Items);
+    }
+    void AddMediaOption(ItemCollection items)
+    {
         var option = new MenuItem { Header = "Touches multimédias en arrière-plan", IsCheckable = true, IsChecked = preferences.MediaKeys };
-        option.Click += (_, _) => { preferences.MediaKeys = option.IsChecked && SetGlobalMediaKeys(true); if (!option.IsChecked) SetGlobalMediaKeys(false); option.IsChecked = preferences.MediaKeys; SavePreferences(); }; menu.Items.Add(option);
+        option.Click += (_, _) => { preferences.MediaKeys = option.IsChecked && SetGlobalMediaKeys(true); if (!option.IsChecked) SetGlobalMediaKeys(false); option.IsChecked = preferences.MediaKeys; SavePreferences(); }; items.Add(option);
     }
     static string PlainReleaseNotes(string notes)
     {

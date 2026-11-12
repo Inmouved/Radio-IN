@@ -178,11 +178,18 @@ public partial class MainWindow
     }
     void AddUpdateOptions(ContextMenu menu)
     {
-        menu.Items.Add(new Separator());
+        AddUpdateOptions(menu.Items);
+    }
+    void AddUpdateOptions(MenuItem menu)
+    {
+        AddUpdateOptions(menu.Items);
+    }
+    void AddUpdateOptions(ItemCollection items)
+    {
         var check = new MenuItem { Header = "Rechercher une mise à jour…" };
-        check.Click += async (_, _) => await CheckUpdatesAsync(true); menu.Items.Add(check);
+        check.Click += async (_, _) => await CheckUpdatesAsync(true); items.Add(check);
         var auto = new MenuItem { Header = "Vérifier les mises à jour au démarrage", IsCheckable = true, IsChecked = preferences.CheckUpdatesOnStartup };
-        auto.Click += (_, _) => { preferences.CheckUpdatesOnStartup = auto.IsChecked; SavePreferences(); }; menu.Items.Add(auto);
+        auto.Click += (_, _) => { preferences.CheckUpdatesOnStartup = auto.IsChecked; SavePreferences(); }; items.Add(auto);
     }
     void ShowUpdateWindow()
     {

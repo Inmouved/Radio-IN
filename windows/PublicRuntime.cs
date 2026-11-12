@@ -9,8 +9,8 @@ namespace RadioIN;
 
 static class AppInfo
 {
-    internal const string Version = "Bêta 1.3";
-    internal static readonly Version WindowsVersion = new(1,3,0,0);
+    internal const string Version = "Bêta 1.3.1";
+    internal static readonly Version WindowsVersion = new(1,3,1,0);
     internal static bool IsTest => Environment.GetCommandLineArgs().Any(a => a.EndsWith("-test"));
     internal static string DataDirectory => IsTest ? Path.Combine(AppContext.BaseDirectory, "test-data") : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RadioIN");
 }

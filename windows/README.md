@@ -1,13 +1,13 @@
 # Code source Windows
 
-Ce dossier contient le code source du lecteur Windows de Radio IN, actuellement publié en **Bêta 1.3**.
+Ce dossier contient le code source Windows de Radio IN. La **Bêta 1.3.1** regroupe les options par thèmes et déplace l’historique dans le menu ⋯.
 
 ## Prérequis de compilation
 
 - Windows 10 ou 11, 64 bits.
 - .NET Framework 4.8 et le SDK .NET 8.
 - VLC installé dans C:\Program Files\VideoLAN\VLC pour récupérer le moteur audio et les modules indispensables.
-- Inno Setup 6.7 ou supérieur pour construire l’installateur.
+- Inno Setup 6.7.3 ou supérieur pour construire l’installateur.
 
 ## Construire
 

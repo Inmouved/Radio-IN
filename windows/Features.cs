@@ -260,13 +260,18 @@ public partial class MainWindow
     {
         var menu = new ContextMenu();
         void Add(string text, Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); menu.Items.Add(item); }
-        Add("♡ Ajouter le titre aux favoris", AddFavorite);
-        Add("Mes favoris…", ShowFavorites);
+        Add("Historique…", () => ShowHistory(this, new RoutedEventArgs()));
         AddRelease13Options(menu);
+        var listen = new MenuItem { Header = "Écoute et notifications" };
         var notify = new MenuItem { Header = "Notifications de changement de titre", IsCheckable = true, IsChecked = preferences.Notifications };
-        notify.Click += (_, _) => { preferences.Notifications = notify.IsChecked; SavePreferences(); }; menu.Items.Add(notify);
+        notify.Click += (_, _) => { preferences.Notifications = notify.IsChecked; SavePreferences(); }; listen.Items.Add(notify);
         var pin = new MenuItem { Header = "Toujours visible", IsCheckable = true, IsChecked = Topmost };
-        pin.Click += (_, _) => { Pin.IsChecked = pin.IsChecked; SavePreferences(); }; menu.Items.Add(pin);
+        pin.Click += (_, _) => { Pin.IsChecked = pin.IsChecked; SavePreferences(); }; listen.Items.Add(pin);
+        AddMediaOption(listen);
+        listen.Items.Add(new Separator());
+        var autoplay = new MenuItem { Header = "Écouter automatiquement au lancement", IsCheckable = true, IsChecked = preferences.AutoPlay };
+        autoplay.Click += (_, _) => { preferences.AutoPlay = autoplay.IsChecked; SavePreferences(); }; listen.Items.Add(autoplay);
+        menu.Items.Add(listen);
         var sleep = new MenuItem { Header = sleepUntil.HasValue ? "Minuterie : " + Math.Ceiling((sleepUntil.Value - DateTime.UtcNow).TotalMinutes) + " min restantes" : "Minuterie de sommeil" };
         foreach (int minutes in new[] { 15, 30, 60, 0 }) {
             var item = new MenuItem { Header = minutes == 0 ? "Désactiver" : minutes + " minutes" };
@@ -274,8 +279,6 @@ public partial class MainWindow
         }
         var customSleep = new MenuItem { Header = "Durée et fondu personnalisés…" }; customSleep.Click += (_, _) => ShowCustomSleep(); sleep.Items.Add(customSleep);
         menu.Items.Add(sleep);
-        Add("Réduire près de l’horloge", () => WindowState = WindowState.Minimized);
-        Add("Raccourcis clavier…", () => MessageBox.Show(this, "Ctrl+E : lecture / arrêt\nCtrl+↑ / ↓ : volume\nCtrl+M : mode suivant\nCtrl+D : design suivant\nCtrl+F : ajouter le titre aux favoris\nCtrl+L : liste des favoris\nCtrl+H : historique\nCtrl+R : demandes de titres\nCtrl+N : notifications\nÉchap : fermer le panneau (Compact)", "Radio IN — raccourcis"));
         AddPublicOptions(menu);
         Add("Quitter", Close);
         OptionsButton.ContextMenu = menu; menu.PlacementTarget = OptionsButton; menu.IsOpen = true;
