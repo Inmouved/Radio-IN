@@ -1,4 +1,13 @@
 <resources>
+    <string name="widget_description">Écouter Radio IN et voir le titre diffusé.</string>
+    <string name="widget_radio_name">Radio IN</string>
+    <string name="widget_default_title">Radio IN</string>
+    <string name="widget_default_artist">Le direct vous attend</string>
+    <string name="widget_play">▶</string>
+    <string name="widget_pause">Ⅱ</string>
+    <string name="widget_icon_description">Logo Radio IN</string>
+    <string name="widget_play_description">Écouter Radio IN</string>
+    <string name="widget_pause_description">Mettre Radio IN en pause</string>
     <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>

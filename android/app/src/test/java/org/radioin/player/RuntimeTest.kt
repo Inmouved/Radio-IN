@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.SessionCommand
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +59,16 @@ class RuntimeTest {
         life.destroy()
         assertFalse(app.repo.playbackActive)
         assertEquals(0L, PlaybackService.sleepDeadline)
+    }
+    @Test fun androidAutoConnectionIncludesLibraryBrowsingAndFavoriteRequestCommands() {
+        val favorite = SessionCommand("radioin.requestFavorite.test", android.os.Bundle.EMPTY)
+        val commands = radioLibrarySessionCommands(includeSleep = false, favoriteCommand = favorite)
+        assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_LIBRARY_ROOT))
+        assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_CHILDREN))
+        assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_ITEM))
+        assertTrue(commands.contains(favorite))
+        assertFalse(commands.contains(SessionCommand(PlaybackService.SLEEP, android.os.Bundle.EMPTY)))
+        assertTrue(radioLibrarySessionCommands(true, favorite).contains(SessionCommand(PlaybackService.SLEEP, android.os.Bundle.EMPTY)))
     }
     @Test fun metadataHistoryAndCatalogueAreParsed() {
         app.repo.refresh(); waitFor { app.repo.current.id == "live" }

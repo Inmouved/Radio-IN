@@ -1,12 +1,14 @@
-# Radio IN — Bêta 1.1 Android
+# Radio IN — Bêta 1.2 Android
 
 Application native Kotlin, Android 8.0/API 26 minimum, cible Android 16/API 36.
 Un APK universel, sans bibliothèque native ni VLC, pour les architectures ARM et x86.
 
 ## Fonctions
 
-Lecture HTTPS en service MediaSessionService/ExoPlayer : arrière-plan, média système,
-écran verrouillé, casque, gestion du focus audio et débranchement des écouteurs.
+Lecture HTTPS en service MediaLibraryService/ExoPlayer : arrière-plan, média système,
+écran verrouillé, Android Auto (direct et favoris avec action de demande), gestion du
+focus audio, interruptions et débranchement des écouteurs. Android Auto nécessite
+Android 9/API 28 ou supérieur ; le lecteur reste compatible dès Android 8/API 26.
 Écran compact avec design automatique fondé sur la pochette. Historique, file « À venir »
 et demandes de titres sont accessibles depuis le lecteur. Les listes de titres peuvent
 être ajoutées aux favoris. Historique de session local, recherche de mises à jour Android,
@@ -14,7 +16,10 @@ retours de demande non bloquants. Pochettes, catalogue AzuraCast, recherche, pag
 confirmation des demandes et respect de Retry-After. Favoris locaux, export/import JSON
 compatible Windows, minuterie, reconnexion, volume, lecture automatique à l'ouverture
 facultative, notifications de titre facultatives, écran allumé facultatif, partage du titre
-et diagnostic local.
+et diagnostic local. Reconnexion déclenchée par le retour réseau et reprise automatique
+après interruption audio quand Android rend le focus. Option d’économie mobile qui utilise
+les pochettes en cache et évite leur téléchargement sur le réseau cellulaire. Widget
+d’accueil redimensionnable (4×1 ou 2×2) pour lancer/arrêter Radio IN et voir le titre.
 Les fonctions propres à Windows sont adaptées : notification média au lieu de la zone
 de notification, écran allumé au lieu de « toujours visible », retour au lecteur depuis
 la notification au lieu d'une seconde fenêtre. Aucun lancement au démarrage du téléphone.

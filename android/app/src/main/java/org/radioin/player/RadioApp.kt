@@ -2,6 +2,8 @@ package org.radioin.player
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Handler
@@ -10,6 +12,7 @@ import android.util.LruCache
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -40,6 +43,7 @@ class Store(context: Context) {
     var notifications: Boolean get() = prefs.getBoolean("notifications", false); set(v) { prefs.edit().putBoolean("notifications", v).apply() }
     var keepScreen: Boolean get() = prefs.getBoolean("keepScreen", false); set(v) { prefs.edit().putBoolean("keepScreen", v).apply() }
     var lastUpdateCheck: Long get() = prefs.getLong("lastUpdateCheck", 0L); set(v) { prefs.edit().putLong("lastUpdateCheck", v).apply() }
+    var saveMobileData: Boolean get() = prefs.getBoolean("saveMobileData", true); set(v) { prefs.edit().putBoolean("saveMobileData", v).apply() }
     fun favorites(): List<Track> = try { val a = JSONArray(prefs.getString("favorites", "[]")); (0 until a.length()).map { Track.saved(a.getJSONObject(it)) } } catch (_: Exception) { emptyList() }
     private fun saveFavorites(tracks: List<Track>) { prefs.edit().putString("favorites", JSONArray().also { a -> tracks.distinctBy { it.id }.forEach { a.put(it.json()) } }.toString()).apply() }
     fun add(t: Track) { if (t.id.isNotBlank()) saveFavorites(favorites() + t) }
@@ -179,33 +183,58 @@ open class RadioRepository(private val app: RadioApp) {
     }
 }
 
-class Artwork(private val repo: RadioRepository) {
+class Artwork(private val app: RadioApp) {
+    private val repo get() = app.repo
     private val cache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) { override fun sizeOf(key: String, value: Bitmap) = value.byteCount }
+    private val diskCache by lazy { File(app.cacheDir, "radio-covers").apply { mkdirs() } }
     fun load(url: String, done: (Bitmap?) -> Unit) {
         if (url.isBlank()) { done(null); return }
         cache.get(url)?.let { done(it); return }
         repo.io.execute {
             val bitmap = runCatching {
+                val cachedFile = File(diskCache, MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) } + ".img")
+                if (cachedFile.isFile) {
+                    cachedFile.setLastModified(System.currentTimeMillis())
+                    val decoded = decode(cachedFile.readBytes(), cellular())
+                    if (decoded != null) return@runCatching decoded
+                    cachedFile.delete()
+                }
+                if (cellular() && app.store.saveMobileData) return@runCatching null
                 require(url.startsWith("https://"))
                 val c = URL(url).openConnection() as HttpURLConnection; c.connectTimeout = 10000; c.readTimeout = 10000; c.instanceFollowRedirects = false
                 try {
                     require(c.responseCode == 200)
                     val bytes = c.inputStream.use { it.readLimited(5 * 1024 * 1024) }
-                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }; BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                    val opts = BitmapFactory.Options().apply { inSampleSize = (maxOf(bounds.outWidth, bounds.outHeight) / 900).coerceAtLeast(1) }
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                    if (bytes.isNotEmpty()) { cachedFile.writeBytes(bytes); trimDiskCache() }
+                    decode(bytes, cellular())
                 } finally { c.disconnect() }
             }.getOrNull()
             if (bitmap != null) cache.put(url, bitmap)
             repo.main.post { done(bitmap) }
         }
     }
+    private fun cellular(): Boolean {
+        val manager = app.getSystemService(ConnectivityManager::class.java)
+        val network = manager.activeNetwork ?: return false
+        return manager.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+    }
+    private fun decode(bytes: ByteArray, cellular: Boolean): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }; BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val target = if (cellular) 256 else 900
+        val opts = BitmapFactory.Options().apply { inSampleSize = (maxOf(bounds.outWidth, bounds.outHeight) / target).coerceAtLeast(1) }
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+    }
+    private fun trimDiskCache() {
+        val files = diskCache.listFiles()?.sortedByDescending { it.lastModified() } ?: return
+        var total = 0L
+        files.forEachIndexed { index, file -> if (index >= 40 || total + file.length() > 32L * 1024 * 1024) file.delete() else total += file.length() }
+    }
 }
 
 open class RadioApp : Application() {
     lateinit var store: Store; lateinit var repo: RadioRepository; lateinit var artwork: Artwork
     override fun onCreate() {
-        super.onCreate(); store = Store(this); repo = createRepository(); artwork = Artwork(repo)
+        super.onCreate(); store = Store(this); repo = createRepository(); artwork = Artwork(this)
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e -> repo.log("Exception non gérée", e); previous?.uncaughtException(t, e) }
     }

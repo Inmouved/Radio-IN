@@ -375,10 +375,11 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this).setTitle("Minuterie de sommeil").setItems(options) { _, which -> controller?.sendCustomCommand(SessionCommand(PlaybackService.SLEEP, Bundle.EMPTY), Bundle().apply { putInt("minutes", values[which]) }); main.postDelayed({ updatePlayback() }, 200) }.show()
     }
     private fun preferences() {
-        AlertDialog.Builder(this).setTitle("Préférences").setMultiChoiceItems(arrayOf("Écouter automatiquement à l’ouverture", "Notifier les changements de titre", "Garder l’écran allumé dans le lecteur"), booleanArrayOf(store.autoPlay, store.notifications, store.keepScreen)) { _, which, checked -> when (which) {
+        AlertDialog.Builder(this).setTitle("Préférences").setMultiChoiceItems(arrayOf("Écouter automatiquement à l’ouverture", "Notifier les changements de titre", "Garder l’écran allumé dans le lecteur", "Économiser les données : pochettes en cache uniquement sur 4G/5G"), booleanArrayOf(store.autoPlay, store.notifications, store.keepScreen, store.saveMobileData)) { _, which, checked -> when (which) {
             0 -> store.autoPlay = checked
             1 -> { store.notifications = checked; if (checked && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 20) }
             2 -> { store.keepScreen = checked; if (checked) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+            3 -> store.saveMobileData = checked
         } }.setPositiveButton("Fermer", null).show()
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) { super.onRequestPermissionsResult(requestCode, permissions, grantResults); if (requestCode == 20 && grantResults.firstOrNull() != android.content.pm.PackageManager.PERMISSION_GRANTED) { store.notifications = false; Toast.makeText(this, "Notifications de titres désactivées. Le lecteur reste utilisable.", Toast.LENGTH_LONG).show() } }
@@ -419,7 +420,7 @@ class MainActivity : Activity() {
             main.post {
                 if (isDestroyed) return@post
                 result.fold({ release ->
-                    if (release == null || compareVersion(release.first, listOf(1, 1, 0)) <= 0) { if (manual) message("Aucune mise à jour Android plus récente n’est disponible.") }
+                    if (release == null || compareVersion(release.first, listOf(1, 2, 0)) <= 0) { if (manual) message("Aucune mise à jour Android plus récente n’est disponible.") }
                     else {
                         val asset = release.third; val url = asset.optString("browser_download_url")
                         val tag = release.second.optString("tag_name")
