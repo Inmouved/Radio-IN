@@ -9,13 +9,13 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 | Plateforme | Version et disponibilité |
 | --- | --- |
 | **Windows** | **Bêta 1.3.2** disponible — installateur ou version portable |
-| **Android** | **Bêta 1.2 Android** disponible — APK universel (Android 8+) |
+| **Android** | **Bêta 1.2 Android — Correctif 1** disponible — APK universel (Android 8+) |
 
 ### Android — Bêta 1.2
 
-- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.2.0-beta/RadioIN-Beta-1.2-Android.apk)**
-- **[Vérifier le fichier téléchargé (SHA-256)](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.2.0-beta/RadioIN-Beta-1.2-Android.apk.sha256)**
-- **[Lire les nouveautés et les instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.2.0-beta)**
+- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.2.1-beta/RadioIN-Beta-1.2-Android.apk)**
+- **[Vérifier le fichier téléchargé (SHA-256)](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.2.1-beta/RadioIN-Beta-1.2-Android.apk.sha256)**
+- **[Lire les nouveautés et les instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.2.1-beta)**
 - **[Consulter le code source Android](android/README.md)**
 
 Android Auto avec direct et favoris, reprise après perte réseau, économie de données pour les pochettes, gestion des interruptions audio et widget d’accueil. Installation hors Google Play, compatible Android 8.0 ou supérieur sur appareils 32 et 64 bits. Android Auto nécessite Android 9 ou supérieur.

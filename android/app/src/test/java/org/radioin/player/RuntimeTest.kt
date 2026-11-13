@@ -43,6 +43,7 @@ class RuntimeTest {
             val lifecycle = Robolectric.buildActivity(MainActivity::class.java).create()
             val activity = lifecycle.get(); val views = all(activity.window.decorView)
             assertTrue(views.filterIsInstance<TextView>().any { it.text.toString() == "RADIO IN" })
+            assertTrue(views.filterIsInstance<TextView>().any { it.text.toString() == BuildConfig.VERSION_NAME.removeSuffix("-test").uppercase(java.util.Locale.ROOT) })
             assertTrue(views.filterIsInstance<Button>().any { it.text.toString().contains("Écouter") })
             assertTrue(views.filterIsInstance<Button>().any { it.text.toString() == "Historique" })
             assertTrue(views.filterIsInstance<Button>().any { it.text.toString() == "À venir" })

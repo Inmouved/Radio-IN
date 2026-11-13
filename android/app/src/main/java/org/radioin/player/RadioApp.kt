@@ -48,7 +48,7 @@ class Store(context: Context) {
     private fun saveFavorites(tracks: List<Track>) { prefs.edit().putString("favorites", JSONArray().also { a -> tracks.distinctBy { it.id }.forEach { a.put(it.json()) } }.toString()).apply() }
     fun add(t: Track) { if (t.id.isNotBlank()) saveFavorites(favorites() + t) }
     fun remove(id: String) = saveFavorites(favorites().filterNot { it.id == id })
-    fun export(): String = JSONObject().put("Application", "RadioIN").put("Schema", 1).put("Version", "Bêta 1 Android").put("Settings", JSONObject().put("Design", theme).put("Mode", mode).put("Volume", volume).put("Favorites", JSONArray().also { a -> favorites().forEach { a.put(it.json()) } })).toString(2)
+    fun export(): String = JSONObject().put("Application", "RadioIN").put("Schema", 1).put("Version", BuildConfig.VERSION_NAME).put("Settings", JSONObject().put("Design", theme).put("Mode", mode).put("Volume", volume).put("Favorites", JSONArray().also { a -> favorites().forEach { a.put(it.json()) } })).toString(2)
     fun importBackup(text: String): Int {
         require(text.toByteArray().size <= 4 * 1024 * 1024) { "Sauvegarde trop volumineuse (4 Mo maximum)." }
         val root = JSONObject(text)

@@ -37,6 +37,8 @@ class MainActivity : Activity() {
     private val app get() = application as RadioApp
     private val store get() = app.store
     private val repo get() = app.repo
+    private val displayVersion get() = BuildConfig.VERSION_NAME.removeSuffix("-test").uppercase(Locale.ROOT)
+    private val installedReleaseVersion get() = BuildConfig.RELEASE_VERSION.split('.').map { it.toIntOrNull() ?: 0 }
     private val main = Handler(Looper.getMainLooper())
     private var future: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
@@ -148,7 +150,7 @@ class MainActivity : Activity() {
         root.addView(scroll, FrameLayout.LayoutParams(-1, -1)); setContentView(root); root.requestApplyInsets()
         val header = row()
         header.addView(ImageView(this).apply { setImageResource(R.drawable.logo); contentDescription = "Logo Radio IN" }, LinearLayout.LayoutParams(dp(36), dp(36)))
-        header.addView(column().apply { setPadding(dp(10), 0, 0, 0); addView(label("RADIO IN", 19f, bold = true)); addView(label("BÊTA 1.1 ANDROID", 10f, Color.rgb(180, 195, 202))) }, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(column().apply { setPadding(dp(10), 0, 0, 0); addView(label("RADIO IN", 19f, bold = true)); addView(label(displayVersion, 10f, Color.rgb(180, 195, 202))) }, LinearLayout.LayoutParams(0, -2, 1f))
         header.addView(button("⋯") { options() }.apply { contentDescription = "Options, favoris et minuterie" }); content.addView(header)
         content.addView(gap(8))
         val live = row(); bars = Bars(this); live.addView(bars, LinearLayout.LayoutParams(dp(24), dp(22))); live.addView(label("  EN DIRECT", 12f, Color.rgb(199, 237, 133), true)); content.addView(live)
@@ -393,8 +395,8 @@ class MainActivity : Activity() {
     }
     private fun about() {
         val log = File(filesDir, "logs/RadioIN.log")
-        AlertDialog.Builder(this).setTitle("Radio IN · Bêta 1.1 Android").setMessage("Lecteur natif Android 8 et versions suivantes.\n\n${statusView.text}\n${repo.status}\n\nVos favoris et réglages restent sur ce téléphone. Aucun compte ni outil publicitaire. Les journaux restent locaux ; leur export est facultatif.\n\nAndroid ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n\nAudio : AndroidX Media3 (Apache 2.0).\nhttps://github.com/androidx/media").setPositiveButton("Fermer", null).setNeutralButton("Diagnostic") { _, _ ->
-            val text = "Radio IN · Bêta 1.1 Android\nAndroid ${android.os.Build.VERSION.RELEASE}\n${statusView.text}\n${repo.status}\n\n" + runCatching { log.readText().takeLast(12000) }.getOrDefault("Aucun incident enregistré.")
+        AlertDialog.Builder(this).setTitle("Radio IN · ${BuildConfig.VERSION_NAME}").setMessage("Lecteur natif Android 8 et versions suivantes.\n\n${statusView.text}\n${repo.status}\n\nVos favoris et réglages restent sur ce téléphone. Aucun compte ni outil publicitaire. Les journaux restent locaux ; leur export est facultatif.\n\nAndroid ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n\nAudio : AndroidX Media3 (Apache 2.0).\nhttps://github.com/androidx/media").setPositiveButton("Fermer", null).setNeutralButton("Diagnostic") { _, _ ->
+            val text = "Radio IN · ${BuildConfig.VERSION_NAME}\nAndroid ${android.os.Build.VERSION.RELEASE}\n${statusView.text}\n${repo.status}\n\n" + runCatching { log.readText().takeLast(12000) }.getOrDefault("Aucun incident enregistré.")
             AlertDialog.Builder(this).setTitle("Diagnostic local").setMessage(text).setNegativeButton("Fermer", null).setPositiveButton("Partager…") { _, _ -> startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Partager le diagnostic")) }.show()
         }.show()
     }
@@ -420,7 +422,7 @@ class MainActivity : Activity() {
             main.post {
                 if (isDestroyed) return@post
                 result.fold({ release ->
-                    if (release == null || compareVersion(release.first, listOf(1, 2, 0)) <= 0) { if (manual) message("Aucune mise à jour Android plus récente n’est disponible.") }
+                    if (release == null || compareVersion(release.first, installedReleaseVersion) <= 0) { if (manual) message("Aucune mise à jour Android plus récente n’est disponible.") }
                     else {
                         val asset = release.third; val url = asset.optString("browser_download_url")
                         val tag = release.second.optString("tag_name")
