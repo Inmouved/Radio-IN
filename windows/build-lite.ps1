@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = 'Stop'
 $sourceDir = $PSScriptRoot
-$buildDir = Join-Path $sourceDir '../../work/lite-build'
-$outDir = Join-Path $sourceDir '../RadioIN-Beta-1.3.2'
+$buildDir = Join-Path $sourceDir 'obj/lite-build'
+$outDir = Join-Path $sourceDir '../RadioIN-Beta-1.4'
 New-Item -ItemType Directory -Force -Path $buildDir,$outDir | Out-Null
 $xaml = Get-Content (Join-Path $sourceDir 'MainWindow.xaml') -Raw -Encoding UTF8
 $xml = [xml]$xaml
@@ -61,7 +61,7 @@ $fx = 'C:/Windows/Microsoft.NET/Framework64/v4.0.30319'
 $refs = @('mscorlib.dll','System.dll','System.Core.dll','System.Xml.dll','System.Xaml.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Windows.Forms.dll','System.Drawing.dll','WPF/WindowsBase.dll','WPF/PresentationCore.dll','WPF/PresentationFramework.dll') | ForEach-Object { '/r:' + (Join-Path $fx $_) }
 & dotnet 'C:/Program Files/dotnet/sdk/8.0.426/Roslyn/bincore/csc.dll' /nologo /target:winexe /platform:x64 /langversion:latest /nullable:enable /define:PORTABLE_HELPER /optimize+ "/out:$buildDir/RadioIN-Updater.exe" $refs "$sourceDir/PortableUpdate.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Updater compilation failed' }
-& dotnet 'C:/Program Files/dotnet/sdk/8.0.426/Roslyn/bincore/csc.dll' /nologo /target:winexe /platform:x64 /langversion:latest /nullable:enable /nowarn:8618,8602 /optimize+ "/out:$outDir/RadioIN.exe" "/win32icon:$sourceDir/assets/app.ico" "/resource:$sourceDir/assets/app.ico,RadioIN.icon.ico" "/resource:$sourceDir/assets/app.png,RadioIN.icon.png" "/resource:$buildDir/Player.xaml,Player.xaml" "/resource:$buildDir/Skin.xaml,Skin.xaml" "/resource:$buildDir/RadioIN-Updater.exe,RadioIN.updater.exe" $refs "$buildDir/Init.cs" "$buildDir/Main.cs" "$buildDir/Global.cs" "$sourceDir/NativeAudio.cs" "$sourceDir/FrameworkJson.cs" "$sourceDir/Features.cs" "$sourceDir/Visuals.cs" "$sourceDir/PublicRuntime.cs" "$sourceDir/PublicFeatures.cs" "$sourceDir/VersionInfo.cs" "$sourceDir/Updater.cs" "$sourceDir/UpdaterTests.cs" "$sourceDir/PortableUpdate.cs" "$sourceDir/BetaFeatures.cs" "$sourceDir/BetaTests.cs" "$sourceDir/Upcoming.cs" "$sourceDir/Release13.cs" "$sourceDir/Release13Tests.cs"
+& dotnet 'C:/Program Files/dotnet/sdk/8.0.426/Roslyn/bincore/csc.dll' /nologo /target:winexe /platform:x64 /langversion:latest /nullable:enable /nowarn:8618,8602 /optimize+ "/out:$outDir/RadioIN.exe" "/win32manifest:$sourceDir/app.manifest" "/win32icon:$sourceDir/assets/app.ico" "/resource:$sourceDir/assets/app.ico,RadioIN.icon.ico" "/resource:$sourceDir/assets/app.png,RadioIN.icon.png" "/resource:$buildDir/Player.xaml,Player.xaml" "/resource:$buildDir/Skin.xaml,Skin.xaml" "/resource:$buildDir/RadioIN-Updater.exe,RadioIN.updater.exe" $refs "$buildDir/Init.cs" "$buildDir/Main.cs" "$buildDir/Global.cs" "$sourceDir/NativeAudio.cs" "$sourceDir/FrameworkJson.cs" "$sourceDir/Features.cs" "$sourceDir/Visuals.cs" "$sourceDir/PublicRuntime.cs" "$sourceDir/PublicFeatures.cs" "$sourceDir/VersionInfo.cs" "$sourceDir/Updater.cs" "$sourceDir/UpdaterTests.cs" "$sourceDir/PortableUpdate.cs" "$sourceDir/BetaFeatures.cs" "$sourceDir/BetaTests.cs" "$sourceDir/Upcoming.cs" "$sourceDir/Release13.cs" "$sourceDir/Release13Tests.cs" "$sourceDir/Release14.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed' }
 $vlc = 'C:/Program Files/VideoLAN/VLC'
 Copy-Item "$vlc/libvlc.dll","$vlc/libvlccore.dll" -Destination $outDir

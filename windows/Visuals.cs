@@ -199,14 +199,23 @@ public partial class MainWindow
             list.ItemsSource = original; await Task.Delay(80); UpdateLayout();
         }
         try {
+            bool offline = Environment.GetCommandLineArgs().Contains("--catalogue-failure-test");
             await WaitForStartup(); await Refresh(); ChangeMode(2);
             var deadline = DateTime.UtcNow.AddSeconds(20); while (loading && DateTime.UtcNow < deadline) await Task.Delay(100);
+            if (offline) {
+                timer.Stop();
+                var examples = Enumerable.Range(1, 24).Select(i => new Track("Titre " + i, "Artiste " + i, "") { Id = "scroll-" + i }).ToList();
+                history = examples;
+                LiveHistory.ItemsSource = examples;
+                Items.ItemsSource = examples;
+            }
             Require(!loading && Items.Items.Count > 0, "Catalogue loaded");
             results.Add($"Large layout before scrolling: Width={Width}; ActualWidth={ActualWidth}; mode={displayMode}");
             Require(ActualWidth >= 850, "Large mode width");
             await TestList(LiveHistory, "History"); await TestList(Items, "Requests");
             Search.Text = "Dredg"; await Task.Delay(600); deadline = DateTime.UtcNow.AddSeconds(20); while (loading && DateTime.UtcNow < deadline) await Task.Delay(100);
-            Require(Items.Items.Count > 0 && Items.Items.Cast<Track>().All(t => t.Detail == "Dredg"), "Search after styling");
+            if (offline) Require(PageLabel.Text == "—" && !loading, "Search error after styling");
+            else Require(Items.Items.Count > 0 && Items.Items.Cast<Track>().All(t => t.Detail == "Dredg"), "Search after styling");
             Require(!Search.GetRectFromCharacterIndex(0).IsEmpty, "Search text rendered");
             Search.Text = ""; await Task.Delay(600); while (loading && DateTime.UtcNow < deadline) await Task.Delay(100);
             results.Add($"Large layout after scrolling: Width={Width}; ActualWidth={ActualWidth}; mode={displayMode}");

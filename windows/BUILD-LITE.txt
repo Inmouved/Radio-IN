@@ -1,4 +1,4 @@
-Radio IN — Bêta 1.3.2
+Radio IN — Bêta 1.4
 
 Le script build-lite.ps1 est la compilation sans téléchargement de dépendances
 utilisée pour les versions livrées. Il utilise le compilateur C# du SDK .NET 8,
@@ -14,7 +14,7 @@ Le projet RadioIN.csproj permet aussi une compilation SDK classique avec les
 assemblies de référence .NET Framework 4.8 installées. Les DLL et modules VLC
 doivent ensuite être copiés à côté du programme (voir la liste dans le script).
 
-Diagnostics disponibles : --public-test, --scroll-test, --startup-test 0/1/2/3, --icon-test, --beta-test,
+Diagnostics disponibles : --beta14-test, --public-test, --scroll-test, --startup-test 0/1/2/3, --icon-test, --beta-test,
 --features-test, --layout-test, --self-test.
 --startup-test 2 --catalogue-failure-test simule un catalogue indisponible.
 --instance-host-test TOKEN et --instance-client-test TOKEN vérifient l'activation

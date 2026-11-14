@@ -56,6 +56,13 @@ public partial class MainWindow
                 var fromPrevious = await client.FindAsync(new Version(1,3,1,0),CancellationToken.None);
                 Check(fromPrevious?.Version == new Version(1,3,2,0),"Bêta 1.3.1 détecte la Bêta 1.3.2");
             }
+            using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent(Json(Release("windows-v1.3.2-beta"), Release("windows-v1.4.0-beta")))
+            }))) {
+                Check((await client.FindAsync(new Version(1,3,2,0), CancellationToken.None))?.Version == AppInfo.WindowsVersion,
+                    "Bêta 1.3.2 détecte la Bêta 1.4");
+                Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "Bêta 1.4 ignore sa propre release");
+            }
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.0.0-beta"), Release("windows-v1.1.0-beta"))) }))) Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "Aucune réinstallation de version identique ou antérieure");
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)))) await Rejected(async () => { await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None); }, "Limite GitHub gérée");
             using (var client = new UpdateClient(new UpdateTestHandler(_ => throw new HttpRequestException("Hors ligne simulé")))) await Rejected(async () => { await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None); }, "Panne réseau gérée sans lancer d’installation");
@@ -82,7 +89,7 @@ public partial class MainWindow
                 UpdateClient.VerifyInstaller(paddedSetup, new UpdateRelease { Version = new Version(1,1,0,1), Sha256 = TestHash(File.ReadAllBytes(paddedSetup)) });
                 Check(true, "Installateur publié avec nom complété par des espaces accepté par le contrôle corrigé");
             }
-                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.3.2-Setup.exe"));
+                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.4-Setup.exe"));
             if (File.Exists(compatibleSetup)) {
                 var actual = System.Diagnostics.FileVersionInfo.GetVersionInfo(compatibleSetup);
                 Check(actual.ProductName == "Radio IN", "Nom du nouvel installateur compatible avec la comparaison stricte de Bêta 1.1");

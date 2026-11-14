@@ -10,6 +10,110 @@ using System.Windows.Media.Imaging;
 namespace RadioIN;
 public partial class MainWindow
 {
+    async Task TestRelease14()
+    {
+        var results = new List<string>();
+        string report = Path.Combine(AppContext.BaseDirectory, "beta14-test.txt");
+        void Check(bool condition, string label)
+        {
+            if (!condition) throw new InvalidOperationException(label);
+            results.Add("PASS: " + label);
+            File.WriteAllLines(report, results);
+        }
+        try {
+            timer.Stop(); audioTimer.Stop(); queueTimer.Stop();
+            var deadline = DateTime.UtcNow.AddSeconds(17);
+            while ((refreshing || loading) && DateTime.UtcNow < deadline) await Task.Delay(50);
+            var now = DateTime.UtcNow;
+            currentPlayedAt = 0;
+            history.Clear();
+            listeningData = new ListeningData();
+            var requested = new Track("Écho", "", "/api/station/1/request/test") { Id = "echo", ArtistName = "Artiste" };
+            using (var accepted = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK) {
+                Content = new System.Net.Http.StringContent("{\"success\":true,\"message\":\"Acceptée\"}")
+            }) await HandleRequestReply(accepted, requested);
+            using (var refused = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.BadRequest) {
+                Content = new System.Net.Http.StringContent("{\"success\":false}")
+            }) await HandleRequestReply(refused, requested);
+            Check(listeningData.Requests.Count == 1, "Seules les demandes confirmées sont mémorisées");
+            var request = listeningData.Requests.Single();
+            ShowMyRequests();
+            Check(((Track)ExtraList.Items[0]).Detail.Contains("en attente"), "Demande acceptée sans horaire");
+            var scheduled = new UpcomingTrack { Title = "Echo", Artist = "ARTISTE", IsRequest = true, ExpectedUtc = now.AddMinutes(8) };
+            upcoming = new UpcomingSnapshot { UpdatedUtc = now, Tracks = new List<UpcomingTrack> { scheduled } };
+            UpdateRequestTracking();
+            Check(request.EstimatedUtc == scheduled.ExpectedUtc && ((Track)ExtraList.Items[0]).Detail.Contains("estimé"), "Rapprochement avec la file");
+            Check(!request.Alerted, "Alerte désactivée par défaut");
+            preferences.RequestAlerts = true;
+            UpdateRequestTracking();
+            Check(request.Alerted && NoticeText.Text.Contains("vers"), "Notification lors de l’annonce");
+            upcoming.Tracks.Add(scheduled);
+            UpdateRequestTracking();
+            Check(!request.EstimatedUtc.HasValue, "Aucun horaire en présence de doublons ambigus");
+            upcoming.Tracks.RemoveAt(1);
+            upcoming.Stale = true;
+            UpdateRequestTracking();
+            Check(!request.EstimatedUtc.HasValue, "Aucun horaire sur file périmée");
+            ShowUpcoming(); ShowMyRequests(); ShowListeningArchive();
+            Check(ExtraList.ItemTemplate == Items.ItemTemplate && ExtraSearch.IsVisible, "Transitions entre les listes avec modèles différents");
+            var earlier = new DateTimeOffset(now.AddMinutes(-10)).ToUnixTimeSeconds();
+            request.AcceptedUtc = now.AddMinutes(-2);
+            var later = new DateTimeOffset(now.AddMinutes(-1)).ToUnixTimeSeconds();
+            history.Add(new Track("Écho", "", "") { Id = "echo", ArtistName = "Artiste", PlayedAt = earlier });
+            history.Add(new Track("Écho", "", "") { Id = "different", ArtistName = "Artiste", PlayedAt = later });
+            UpdateRequestTracking();
+            Check(!request.PlayedUtc.HasValue, "Ancienne diffusion et homonyme ignorés");
+            history.RemoveAt(1);
+            history.Add(new Track("Écho", "", "") { Id = "echo", ArtistName = "Artiste", PlayedAt = later });
+            UpdateRequestTracking();
+            Check(request.PlayedUtc.HasValue, "Diffusion postérieure retrouvée même sans écoute du direct");
+            SaveListenedTrack("echo", "Écho", "Artiste", earlier);
+            SaveListenedTrack("echo", "Écho", "Artiste", earlier);
+            SaveListenedTrack("echo", "Écho", "Artiste", later);
+            var reloaded = listeningSerializer.Deserialize<ListeningData>(File.ReadAllText(listeningPath));
+            Check(reloaded.History.Count == 2 && reloaded.Requests.Single().PlayedUtc.HasValue, "Sauvegarde relisible et dédoublonnée");
+            Check(MatchesArchive(reloaded.History[0], "echo artiste " + now.ToLocalTime().ToString("dd/MM/yyyy")), "Recherche par titre, artiste et date");
+            currentSongId = "cover-favorite"; SongTitle.Text = "Titre test";
+            ChangeMode(3); SetCoverControls(true); UpdateLayout();
+            CoverFavorite.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Check(CoverFavorite.IsVisible && (string)CoverFavorite.Content == "♥" && (string)FavoriteButton.Content == "♥", "Cœur Pochette synchronisé");
+            ChangeMode(2); UpdateLayout();
+            LargeUpcomingButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Check(LargeUpcomingButton.IsVisible && extraView == "queue", "Bouton À venir en mode Large");
+            CloseExtraPanel();
+            Check(HistoryPane.IsVisible && Drawer.IsVisible, "Retour au catalogue et historique en mode Large");
+            ChangeMode(0);
+            var screen = System.Windows.Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle).WorkingArea;
+            var compactPoint = new ModePosition { X = screen.Left + 10, Y = screen.Top + 20 };
+            var coverPoint = new ModePosition { X = screen.Left + 80, Y = screen.Top + 30 };
+            preferences.ModePositions["0"] = compactPoint;
+            preferences.ModePositions["3"] = coverPoint;
+            PlacePlayer(compactPoint);
+            ChangeMode(3); UpdateLayout(); ChangeMode(0); UpdateLayout();
+            Check(GetWindowRect(new WindowInteropHelper(this).Handle, out var window) && window.Left == compactPoint.X && window.Top == compactPoint.Y,
+                "Position Compact restaurée après le mode Pochette");
+            positioningMode = true;
+            try {
+                Width = 285; UpdateLayout();
+                bool Inside(FrameworkElement element) {
+                    var bounds = element.TransformToAncestor(this).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+                    return bounds.Right <= ActualWidth && bounds.Bottom <= ActualHeight;
+                }
+                Check(Inside(CloseWindowButton) && Inside(UpcomingButton) && Inside(Play), "Commandes accessibles en Compact à 285 px logiques");
+            } finally { Width = 440; positioningMode = false; }
+            var area = new System.Drawing.Rectangle(-1920, 0, 1920, 1040);
+            Check(ClampPlacement(-90, 990, 440, 300, area) == new System.Drawing.Point(-440, 740), "Limites d’un écran secondaire à coordonnées négatives");
+            Check(ClampPlacement(100, 100, 860, 500, new System.Drawing.Rectangle(0, 0, 700, 450)).IsEmpty, "Fenêtre plus grande que la zone disponible");
+            Check(ExplainUpdateFailure(new UnauthorizedAccessException()).Contains("accès") &&
+                ExplainUpdateFailure(new InvalidDataException("Fichier tronqué.")).Contains("tronqué"), "Causes de mise à jour distinctes");
+            ShowUpdateWindow();
+            Check(updateRetry != null && updateRetry.Visibility == Visibility.Collapsed && updateInstall!.Visibility == Visibility.Collapsed, "Aucune installation avant vérification");
+            updateWindow!.Close();
+        } catch (Exception ex) { results.Add("ERROR: " + ex); Environment.ExitCode = 1; }
+        File.WriteAllLines(report, results);
+        Close();
+    }
+
     async Task TestRelease13()
     {
         var results = new List<string>();

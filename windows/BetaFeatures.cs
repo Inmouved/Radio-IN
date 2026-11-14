@@ -53,7 +53,7 @@ public partial class MainWindow
         bool existing = preferences.Favorites.Any(f => f.Id == track.Id);
         if (!existing) preferences.Favorites.Add(new Favorite { Id = track.Id, Title = track.Title, Artist = track.ArtistName });
         SavePreferences(); UpdateFavoritesList();
-        FavoriteButton.Content = preferences.Favorites.Any(f => f.Id == currentSongId) ? "♥" : "♡";
+        SyncFavoriteButtons();
         ShowInlineNotice(existing ? "Ce titre est déjà dans vos favoris." : "♥ « " + track.Title + " » ajouté aux favoris.");
     }
     static string NormalizeSearch(string value)
@@ -67,13 +67,17 @@ public partial class MainWindow
     {
         string term = NormalizeSearch(query);
         var rows = source.Where(f => NormalizeSearch(f.Title + " " + f.Artist).Contains(term));
-        return sort == 1 ? rows.OrderBy(f => f.Title, StringComparer.CurrentCultureIgnoreCase).ThenBy(f => f.Artist).ToList() :
-            sort == 2 ? rows.OrderBy(f => f.Artist, StringComparer.CurrentCultureIgnoreCase).ThenBy(f => f.Title).ToList() : rows.Reverse().ToList();
+        return sort switch {
+            1 => rows.OrderBy(f => f.Title, StringComparer.CurrentCultureIgnoreCase).ThenBy(f => f.Artist).ToList(),
+            2 => rows.OrderBy(f => f.Artist, StringComparer.CurrentCultureIgnoreCase).ThenBy(f => f.Title).ToList(),
+            3 => rows.ToList(),
+            _ => rows.Reverse().ToList()
+        };
     }
     void AddFavoriteFilters(DockPanel panel)
     {
         var filters = new DockPanel { Margin = new Thickness(12,0,12,0) };
-        favoriteSort = new ComboBox { Width = 130, Margin = new Thickness(8,0,0,0), ToolTip = "Trier les favoris", ItemsSource = new[] { "Ajouts récents", "Titre A–Z", "Artiste A–Z" }, SelectedIndex = 0 };
+        favoriteSort = new ComboBox { Width = 145, Margin = new Thickness(8,0,0,0), ToolTip = "Trier les favoris", ItemsSource = new[] { "Ajouts récents", "Titre A–Z", "Artiste A–Z", "Ajouts anciens" }, SelectedIndex = 0 };
         favoriteSearch = new TextBox { Padding = new Thickness(6), ToolTip = "Rechercher un titre ou un artiste" };
         DockPanel.SetDock(favoriteSort, Dock.Right); filters.Children.Add(favoriteSort); filters.Children.Add(favoriteSearch);
         DockPanel.SetDock(filters, Dock.Top); panel.Children.Insert(1, filters);
@@ -139,7 +143,7 @@ public partial class MainWindow
         SetSleep(0); Volume.Value = preferences.Volume; Pin.IsChecked = false; ApplyDesign(0); ChangeMode(0);
         Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - Width) / 2;
         Top = SystemParameters.WorkArea.Top + Math.Max(0, (SystemParameters.WorkArea.Height - ActualHeight) / 2);
-        SavePreferences(); UpdateFavoritesList(); ShowInlineNotice("Réglages réinitialisés. Vos favoris sont conservés.");
+        SavePreferences(); UpdateFavoritesList(); SyncFavoriteButtons(); ShowInlineNotice("Réglages réinitialisés. Vos favoris sont conservés.");
     }
     bool ExecuteMediaCommand(int command)
     {

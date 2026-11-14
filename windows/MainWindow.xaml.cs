@@ -36,7 +36,7 @@ public partial class MainWindow : Window
         try { audio = new NativeAudio(); audio.SetVolume(Volume.Value); }
         catch (Exception ex) { LocalLog.Write("Initialisation audio", ex); Status.Text = "Moteur audio : " + ex.Message; Play.IsEnabled = false; }
         Loaded += async (_, _) => { await Refresh(); timer.Start(); };
-        timer.Tick += async (_, _) => { await Refresh(); if (displayMode == 2 && !loading && !sending) await LoadRequests(true); };
+        timer.Tick += async (_, _) => { await Refresh(); if (!closed && displayMode == 2 && requesting && !loading && !sending) await LoadRequests(true); };
         audioTimer.Tick += (_, _) => CheckAudio();
         audioTimer.Start();
         Closed += (_, _) => { closed = true; timer.Stop(); audioTimer.Stop(); searchTimer.Stop(); audio?.Dispose(); client.Dispose(); };
@@ -46,6 +46,7 @@ public partial class MainWindow : Window
         InitializeUpdater();
         InitializeBetaFeatures();
         InitializeRelease13();
+        InitializeRelease14();
         if (Environment.GetCommandLineArgs().Contains("--layout-test")) Loaded += async (_, _) => {
             var results = new List<string>();
             try {
@@ -117,7 +118,7 @@ public partial class MainWindow : Window
             SongTitle.ToolTip = CoverTitle.ToolTip = SongTitle.Text + " — " + Artist.Text;
             currentSongId = S(song, "id");
             currentPlayedAt = root.GetProperty("now_playing").TryGetProperty("played_at", out var began) ? began.GetInt64() : 0;
-            FavoriteButton.Content = preferences.Favorites.Any(f => f.Id == currentSongId) ? "♥" : "♡";
+            SyncFavoriteButtons();
             ReducedSong.Text = SongTitle.Text;
             ReducedSong.ToolTip = Artist.Text + " — " + SongTitle.Text;
             var url = S(song, "art");
@@ -127,8 +128,9 @@ public partial class MainWindow : Window
             history = root.GetProperty("song_history").EnumerateArray().Select(e => {
                 var s = e.GetProperty("song");
                 var time = DateTimeOffset.FromUnixTimeSeconds(e.GetProperty("played_at").GetInt64()).ToLocalTime().ToString("HH:mm");
-                return new Track(S(s, "title"), time + "  ·  " + S(s, "artist"), "") { Id = S(s, "id"), ArtistName = S(s, "artist") };
+                return new Track(S(s, "title"), time + "  ·  " + S(s, "artist"), "") { Id = S(s, "id"), ArtistName = S(s, "artist"), PlayedAt = e.GetProperty("played_at").GetInt64() };
             }).ToList();
+            UpdateRequestTracking();
             ReplaceTracks(LiveHistory, history);
             RequestButton.IsEnabled = root.GetProperty("station").GetProperty("requests_enabled").GetBoolean();
             if (Drawer.Visibility == Visibility.Visible && !requesting) ReplaceTracks(Items, history);
@@ -167,7 +169,7 @@ public partial class MainWindow : Window
     void ShowHistory(object sender, RoutedEventArgs e)
     {
         CloseExtraPanel();
-        generation++; requesting = false; Drawer.Visibility = Visibility.Visible; PanelTitle.Text = "Derniers titres diffusés";
+        generation++; loading = false; requesting = false; Drawer.Visibility = Visibility.Visible; PanelTitle.Text = "Derniers titres diffusés";
         SearchPanel.Visibility = RequestActions.Visibility = Visibility.Collapsed; Items.ItemsSource = history;
     }
     async void ShowRequests(object sender, RoutedEventArgs e)
@@ -176,7 +178,7 @@ public partial class MainWindow : Window
         requesting = true; Drawer.Visibility = Visibility.Visible; PanelTitle.Text = "Demander un titre";
         SearchPanel.Visibility = RequestActions.Visibility = Visibility.Visible; query = Search.Text.Trim(); await LoadRequests();
     }
-    void CloseDrawer(object sender, RoutedEventArgs e) { generation++; Drawer.Visibility = Visibility.Collapsed; }
+    void CloseDrawer(object sender, RoutedEventArgs e) { generation++; loading = false; Drawer.Visibility = Visibility.Collapsed; }
     void OpenChoices(Button button, string[] labels, int selected, Action<int> apply)
     {
         var menu = new ContextMenu();
@@ -201,6 +203,8 @@ public partial class MainWindow : Window
     }
     async void ChangeMode(int mode)
     {
+        bool changing = mode != displayMode;
+        if (changing) RememberModePosition();
         CloseExtraPanel();
         displayMode = mode; generation++; loading = false;
         ModeButton.Content = modes[mode] + " ▾";
@@ -210,10 +214,15 @@ public partial class MainWindow : Window
         SetCoverControls(mode == 3 && IsMouseOver);
         ReducedSong.Visibility = mode == 1 ? Visibility.Visible : Visibility.Collapsed;
         Navigation.Visibility = mode == 0 ? Visibility.Visible : Visibility.Collapsed;
+        LargeUpcomingButton.Visibility = mode == 2 ? Visibility.Visible : Visibility.Collapsed;
         HistoryPane.Visibility = mode == 2 ? Visibility.Visible : Visibility.Collapsed;
         ClosePanelButton.Visibility = mode == 2 ? Visibility.Collapsed : Visibility.Visible;
         Drawer.Visibility = mode == 2 ? Visibility.Visible : Visibility.Collapsed;
         Items.Height = mode == 2 ? 280 : 245;
+        if (changing || !preferencesReady) {
+            preferences.ModePositions.TryGetValue(mode.ToString(System.Globalization.CultureInfo.InvariantCulture), out var position);
+            PlacePlayer(position);
+        }
         UpdateListeningAnimation();
         if (IsLoaded) SavePreferences();
         if (mode == 2) {
@@ -249,7 +258,7 @@ public partial class MainWindow : Window
     {
         if (sending) return;
         if (Items.SelectedItem is not Track track) { Status.Text = "Choisissez un titre dans la liste."; return; }
-        await SubmitRequest(track.Url);
+        await SubmitRequest(track.Url, track);
     }
     public sealed class Track
     {
@@ -258,6 +267,7 @@ public partial class MainWindow : Window
         public string Title { get; set; }
         public string Detail { get; set; }
         public string Url { get; set; }
+        public long PlayedAt { get; set; }
         public Track(string title, string detail, string url) { Title = title; Detail = detail; Url = url; }
     }
 }

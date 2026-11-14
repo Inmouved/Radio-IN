@@ -1,6 +1,10 @@
 # Code source Windows
 
-Ce dossier contient le code source Windows de Radio IN. La **Bêta 1.3.2** retente la recherche de mises à jour toutes les 30 minutes lorsque l’option automatique est activée.
+Ce dossier contient le code source de la **Bêta 1.4 Windows** de Radio IN.
+
+Le menu ⋯ donne accès à **Mes demandes**, à l’alerte facultative sur les demandes annoncées et à l’historique d’écoute. Le suivi rapproche les demandes acceptées de la file publique et des diffusions observées. L’historique conserve jusqu’à 1 000 passages écoutés et le suivi jusqu’à 200 demandes.
+
+Le mode Pochette affiche le cœur des favoris au survol. Le mode Large donne un accès direct à **À venir**. Chaque mode mémorise sa position. Les mises à jour affichent la progression et permettent de relancer la recherche ou le téléchargement.
 
 ## Prérequis de compilation
 

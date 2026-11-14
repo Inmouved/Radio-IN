@@ -24,7 +24,10 @@ public partial class MainWindow
         }
         Closed += (_, _) => { applicationIcon?.Dispose(); applicationIcon = null; };
         // Listen on the whole window so the outer margins and free spaces work too.
-        MouseLeftButtonDown += (_, e) => DragWindow(this, e);
+        MouseLeftButtonDown += (_, e) => {
+            DragWindow(this, e);
+            if (e.Handled) SavePreferences();
+        };
         MinimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
         CloseWindowButton.Click += (_, _) => Close();
         CloseWindowButton.MouseEnter += (_, _) => CloseWindowButton.Background = new SolidColorBrush(Color.FromRgb(164, 48, 61));
@@ -68,7 +71,8 @@ public partial class MainWindow
             if (node == window) return true;
             if (node is System.Windows.Controls.Primitives.ButtonBase ||
                 node is System.Windows.Controls.Primitives.TextBoxBase || node is PasswordBox ||
-                node is System.Windows.Controls.Primitives.Selector || node is ScrollViewer ||
+                node is System.Windows.Controls.Primitives.Selector ||
+                node is ScrollViewer scroll && scroll.Name != "PlayerViewport" ||
                 node is System.Windows.Controls.Primitives.RangeBase || node is System.Windows.Controls.Primitives.Thumb ||
                 node is System.Windows.Controls.Primitives.MenuBase || node is System.Windows.Documents.Hyperlink) return false;
             node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
@@ -102,6 +106,8 @@ public partial class MainWindow
         public double Volume { get; set; } = 0.75;
         public double? Left { get; set; }
         public double? Top { get; set; }
+        public Dictionary<string, ModePosition> ModePositions { get; set; } = new();
+        public bool RequestAlerts { get; set; }
         public bool Pin { get; set; }
         public bool Notifications { get; set; }
         public bool LaunchHidden { get; set; }
@@ -139,6 +145,7 @@ public partial class MainWindow
             if (File.Exists(preferencesPath)) preferences = new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(preferencesPath)) ?? new Preferences();
         } catch(Exception ex) { LocalLog.Write("Lecture préférences", ex); Status.Text = "Préférences illisibles : valeurs par défaut utilisées."; }
         preferences.Favorites = preferences.Favorites ?? new List<Favorite>();
+        preferences.ModePositions ??= new Dictionary<string, ModePosition>();
         restoring = true;
         Volume.Value = double.IsNaN(preferences.Volume) || double.IsInfinity(preferences.Volume) ? .75 : Math.Max(0, Math.Min(1, preferences.Volume));
         Pin.IsChecked = preferences.Pin;
@@ -174,6 +181,7 @@ public partial class MainWindow
                 var screen = Forms.Screen.AllScreens.FirstOrDefault(s => preferences.Left.Value >= s.WorkingArea.Left && preferences.Left.Value < s.WorkingArea.Right && preferences.Top.Value >= s.WorkingArea.Top && preferences.Top.Value < s.WorkingArea.Bottom);
                 if (screen != null) { Left = preferences.Left.Value; Top = preferences.Top.Value; }
             }
+            nativePositionReady = true;
             ChangeMode(restoredMode);
             preferencesReady = true;
         };
@@ -233,6 +241,7 @@ public partial class MainWindow
     void SavePreferences()
     {
         if (restoring || !preferencesReady) return;
+        RememberModePosition();
         preferences.Design = design; preferences.Mode = displayMode; preferences.Volume = Volume.Value; preferences.Pin = Pin.IsChecked == true;
         if (WindowState == WindowState.Normal) { preferences.Left = Left; preferences.Top = Top; }
         else if (!RestoreBounds.IsEmpty) { preferences.Left = RestoreBounds.Left; preferences.Top = RestoreBounds.Top; }
@@ -315,7 +324,7 @@ public partial class MainWindow
     {
         if (currentSongId.Length == 0) { Status.Text = "Attendez le chargement du titre en cours."; return; }
         if (!preferences.Favorites.Any(f => f.Id == currentSongId)) preferences.Favorites.Add(new Favorite { Id = currentSongId, Title = SongTitle.Text, Artist = Artist.Text });
-        FavoriteButton.Content = "♥"; Status.Text = "Titre enregistré dans vos favoris."; SavePreferences(); UpdateFavoritesList();
+        SyncFavoriteButtons(); Status.Text = "Titre enregistré dans vos favoris."; SavePreferences(); UpdateFavoritesList();
     }
     void UpdateFavoritesList() { if (favoritesList != null) { string? id = (favoritesList.SelectedItem as Favorite)?.Id; var rows = FilterFavorites(preferences.Favorites, favoriteSearch?.Text ?? "", favoriteSort?.SelectedIndex ?? 0); favoritesList.ItemsSource = rows; favoritesList.SelectedItem = rows.FirstOrDefault(f => f.Id == id); } }
     void ShowFavorites()
@@ -324,7 +333,14 @@ public partial class MainWindow
         favoritesList = new ListBox { Margin = new Thickness(12), Height = 270, Background = new SolidColorBrush(Color.FromRgb(17, 27, 40)), Foreground = Brushes.White, BorderThickness = new Thickness(0) };
         var panel = new DockPanel(); var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(12) };
         var request = new Button { Content = "Demander ce titre" }; var remove = new Button { Content = "Retirer" };
-        actions.Children.Add(request); actions.Children.Add(remove); DockPanel.SetDock(actions, Dock.Bottom); panel.Children.Add(actions); panel.Children.Add(favoritesList);
+        var copy = new Button { Content = "Copier le titre" };
+        actions.Children.Add(request); actions.Children.Add(remove); actions.Children.Add(copy); DockPanel.SetDock(actions, Dock.Bottom); panel.Children.Add(actions); panel.Children.Add(favoritesList);
+        copy.Click += (_, _) => {
+            if (favoritesList?.SelectedItem is not Favorite track) return;
+            try { Clipboard.SetText(track.ToString()); copy.Content = "Copié"; }
+            catch (System.Runtime.InteropServices.ExternalException) { copy.Content = "Réessayer la copie"; }
+        };
+        favoritesList.SelectionChanged += (_, _) => copy.Content = "Copier le titre";
         var header = new DockPanel { Margin = new Thickness(12), Background = Brushes.Transparent };
         var closeFavorites = new Button { Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 1,1 L 11,11 M 11,1 L 1,11"), Stroke = Brushes.White, StrokeThickness = 2, Width = 12, Height = 12, Stretch = Stretch.Uniform }, Width = 34, Height = 32, Padding = new Thickness(0), Margin = new Thickness(0), Background = new SolidColorBrush(Color.FromRgb(45, 64, 87)), BorderBrush = new SolidColorBrush(Color.FromRgb(116, 145, 181)), ToolTip = "Fermer les favoris" };
         System.Windows.Automation.AutomationProperties.SetName(closeFavorites, "Fermer les favoris");
@@ -334,7 +350,7 @@ public partial class MainWindow
         favoritesWindow = new Window { Owner = this, Icon = Icon, Title = "Radio IN — Mes favoris", WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Background = new SolidColorBrush(Color.FromRgb(20, 29, 42)), Width = 470, SizeToContent = SizeToContent.Height, Content = panel, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         var favoriteDialog = favoritesWindow; closeFavorites.Click += (_, _) => favoriteDialog.Close(); header.MouseLeftButtonDown += (_, e) => DragWindow(favoriteDialog, e); AddRoundedCorners(favoriteDialog);
         favoritesWindow.Closed += (_, _) => { favoritesWindow = null; favoritesList = null; favoriteSearch = null; favoriteSort = null; };
-        remove.Click += (_, _) => { if (favoritesList?.SelectedItem is Favorite f) { preferences.Favorites.Remove(f); SavePreferences(); UpdateFavoritesList(); FavoriteButton.Content = preferences.Favorites.Any(x => x.Id == currentSongId) ? "♥" : "♡"; } };
+        remove.Click += (_, _) => { if (favoritesList?.SelectedItem is Favorite f) { preferences.Favorites.Remove(f); SavePreferences(); UpdateFavoritesList(); SyncFavoriteButtons(); } };
         request.Click += async (_, _) => {
             if (!(favoritesList?.SelectedItem is Favorite f)) return;
             request.IsEnabled = false;
@@ -347,8 +363,7 @@ public partial class MainWindow
                     if (row.TryGetProperty("request_url", out var url)) found = url.ToString();
                 }
                 if (found.Length == 0) { ShowInlineNotice("Ce titre n’est pas disponible dans le catalogue des demandes."); return; }
-                pendingFavoriteTitle = f.Title; pendingFavoriteArtist = f.Artist;
-                await SubmitRequest(found);
+                await SubmitRequest(found, new Track(f.Title, "", found) { Id = f.Id, ArtistName = f.Artist });
             } catch { if (!closed) ShowInlineNotice("Catalogue indisponible, réessayez plus tard."); }
             finally { request.IsEnabled = true; }
         };
@@ -408,26 +423,27 @@ public partial class MainWindow
         UpdateConnection(!NetworkInterfaceAvailable() ? "Aucune connexion réseau · reconnexion automatique…" : !metadataOnline ? "Radio inaccessible · reconnexion automatique…" : "Flux interrompu · reconnexion automatique…"); RetryNow.Visibility = Visibility.Visible; Play.Content = "■  Arrêter";
         LocalLog.Write("Reconnexion audio, tentative " + reconnectAttempts);
     }
-    async Task SubmitRequest(string url)
+    async Task SubmitRequest(string url, Track? track = null)
     {
         if (sending) return;
         if (RequestCoolingDown) { ShowInlineNotice("Nouvelle demande possible dans " + Math.Ceiling((requestAllowedAt!.Value - DateTime.UtcNow).TotalSeconds) + " s."); return; }
         if (!Uri.TryCreate(new Uri(Origin), url, out var uri) || uri.Scheme != "https" || uri.Host != new Uri(Origin).Host || !uri.AbsolutePath.StartsWith("/api/station/1/request/")) return;
-        if (ConfirmDuplicate(url)) return;
+        if (ConfirmDuplicate(url, track)) return;
         sending = true; Send.IsEnabled = false; RequestFeedback.Text = "Envoi de la demande…";
         ShowInlineNotice(RequestFeedback.Text);
         try {
             using var response = await client.PostAsync(uri, null);
-            await HandleRequestReply(response);
+            await HandleRequestReply(response, track);
         } catch { if (!closed) { RequestFeedback.Text = "Confirmation non reçue. La demande a peut-être été acceptée : vérifiez avant de réessayer."; ShowInlineNotice(RequestFeedback.Text); } }
         finally { sending = false; if (!closed) Send.IsEnabled = !loading && !RequestCoolingDown; }
     }
-    async Task HandleRequestReply(System.Net.Http.HttpResponseMessage response)
+    async Task HandleRequestReply(System.Net.Http.HttpResponseMessage response, Track? track = null)
     {
             bool accepted = false, recognized = false; string message = "";
             try { using var doc = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync()); message = S(doc.RootElement, "message"); if (doc.RootElement.TryGetProperty("success", out var ok)) { recognized = true; accepted = response.IsSuccessStatusCode && ok.GetBoolean(); } } catch { message = "Réponse du serveur non reconnue."; }
             requestAllowedAt = response.Headers.RetryAfter == null ? (DateTime?)null : response.Headers.RetryAfter.Delta.HasValue ? DateTime.UtcNow.Add(response.Headers.RetryAfter.Delta.Value) : response.Headers.RetryAfter.Date?.UtcDateTime;
             if (!closed) RequestFeedback.Text = (accepted ? "✓ Demande acceptée. " : response.IsSuccessStatusCode && !recognized ? "Confirmation non reconnue. " : "Demande refusée. ") + message + (requestAllowedAt.HasValue ? " Prochaine demande : " + requestAllowedAt.Value.ToLocalTime().ToString("HH:mm:ss") : "");
+            if (accepted && track != null) RecordAcceptedRequest(track);
             if (!closed) { ShowInlineNotice(RequestFeedback.Text); TickBetaFeatures(); }
     }
     async Task TestFeatures()

@@ -8,7 +8,7 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 | Plateforme | Version et disponibilité |
 | --- | --- |
-| **Windows** | **Bêta 1.3.2** disponible — installateur ou version portable |
+| **Windows** | **Bêta 1.4** disponible — installateur ou version portable |
 | **Android** | **Bêta 1.3 Android** disponible — APK universel (Android 8+) |
 
 ### Android — Bêta 1.3
@@ -20,11 +20,11 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 Android Auto avec direct, file des titres à venir, favoris, demandes de titres, ajout aux favoris, commandes vocales et messages de reconnexion. L’application propose aussi la reprise après perte réseau, l’économie de données pour les pochettes, la gestion des interruptions audio et un widget d’accueil. Installation hors Google Play, compatible Android 8.0 ou supérieur sur appareils 32 et 64 bits. Android Auto nécessite Android 9 ou supérieur.
 
-### Windows — Bêta 1.3.2
+### Windows — Bêta 1.4
 
-- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.2-beta/RadioIN-Beta-1.3.2-Setup.exe)**
-- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.3.2-beta/RadioIN-Beta-1.3.2-Windows.zip)**
-- **[Lire les nouveautés de la Bêta 1.3.2](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.2-beta)**
+- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.0-beta/RadioIN-Beta-1.4-Setup.exe)**
+- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.0-beta/RadioIN-Beta-1.4-Windows.zip)**
+- **[Lire les nouveautés de la Bêta 1.4](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.4.0-beta)**
 - **[Consulter le code source Windows](windows/README.md)**
 
 **Configuration requise :** Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 ou supérieur et une connexion Internet. Le moteur audio est inclus : VLC n’a pas besoin d’être installé.
@@ -36,11 +36,12 @@ Android Auto avec direct, file des titres à venir, favoris, demandes de titres,
 ### Écouter et retrouver les titres
 
 - Écoute du direct avec le titre, l’artiste et la pochette du morceau.
-- Historique des derniers titres diffusés et des morceaux observés pendant la session d’écoute (jusqu’à 500 titres, jusqu’à la fermeture).
+- Historique des derniers titres diffusés, historique de session et jusqu’à 1 000 écoutes conservées après fermeture, avec recherche par titre, artiste et date.
 - File **À venir** : pochettes, artistes, demandes auditeur et horaires estimés, actualisés toutes les 15 secondes.
-- Accès à **À venir** dans les quatre modes depuis le menu **⋯**, avec un bouton direct en mode Compact.
+- Accès à **À venir** depuis le menu **⋯** et directement depuis les modes Compact et Large.
 - Catalogue avec recherche et demandes de titres.
-- Favoris : ajout depuis le lecteur, l’historique ou le catalogue, recherche et tri.
+- **Mes demandes** avec suivi des demandes acceptées, heure estimée si disponible et alerte facultative lors de l’annonce dans la file.
+- Favoris : ajout depuis le lecteur, y compris en mode Pochette, recherche, tri et copie du titre.
 - Messages de confirmation, de refus et d’erreur de demande intégrés au lecteur.
 - Export et import des favoris et des réglages.
 - Sauvegardes automatiques des favoris : les 20 dernières copies sont conservées, avec restauration par fusion.
@@ -59,7 +60,7 @@ Quatre modes d’affichage :
 
 Six designs sont disponibles : **Actuel, Sombre, Flamme, Vert, Bleu et Auto**.
 
-L’opacité est réglable de **70 à 100 %**, avec trois tailles de titres et de listes et des animations normales, discrètes ou désactivées.
+L’opacité est réglable de **70 à 100 %**, avec trois tailles de titres et de listes et des animations normales, discrètes ou désactivées. Chaque mode mémorise sa position et le mode Compact adapte ses commandes à la largeur disponible.
 
 Le lecteur propose également des transitions douces, des titres défilants, une animation discrète pendant l’écoute, un logo de remplacement lorsqu’une pochette manque et une option pour garder la fenêtre au premier plan.
 
@@ -81,7 +82,7 @@ Les demandes dépendent du catalogue et des règles de la radio. Une demande acc
 ### Avec l’installateur
 
 1. Fermez l’ancienne version de Radio IN si elle est ouverte.
-2. Téléchargez **RadioIN-Beta-1.3-Setup.exe**.
+2. Téléchargez **RadioIN-Beta-1.4-Setup.exe**.
 3. Lancez le fichier et suivez l’assistant.
 4. Ouvrez Radio IN depuis le menu Démarrer ou le raccourci choisi.
 
@@ -89,7 +90,7 @@ L’installation concerne votre compte Windows et ne demande pas de droits admin
 
 ### En version portable
 
-1. Téléchargez **RadioIN-Beta-1.3-Windows.zip**.
+1. Téléchargez **RadioIN-Beta-1.4-Windows.zip**.
 2. Extrayez **tout le contenu** dans un dossier accessible en écriture.
 3. Lancez **RadioIN.exe** depuis ce dossier.
 

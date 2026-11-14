@@ -147,6 +147,7 @@ public partial class MainWindow
         var settings = backup.Settings;
         if (double.IsNaN(settings.Volume) || double.IsInfinity(settings.Volume) || settings.Volume < 0 || settings.Volume > 1) throw new FormatException("Volume invalide dans la sauvegarde.");
         settings.Favorites = settings.Favorites ?? new List<Favorite>();
+        settings.ModePositions ??= new Dictionary<string, ModePosition>();
         if (settings.Favorites.Count > 10000 || settings.Favorites.Any(f => f == null || string.IsNullOrWhiteSpace(f.Id) || f.Id.Length > 128 || f.Title == null || f.Title.Length > 1024 || f.Artist == null || f.Artist.Length > 1024)) throw new FormatException("Liste de favoris invalide.");
         settings.Favorites = settings.Favorites.GroupBy(f => f.Id).Select(g => g.First()).ToList();
         settings.Design = Math.Max(0, Math.Min(5, settings.Design)); settings.Mode = Math.Max(0, Math.Min(3, settings.Mode));
@@ -164,11 +165,12 @@ public partial class MainWindow
             preferences = settings; Volume.Value = settings.Volume; Pin.IsChecked = settings.Pin;
             ApplyDesign(settings.Design); ChangeMode(settings.Mode); ApplyReadingSettings(); UpdateFavoritesList();
             if (!testMode) SetGlobalMediaKeys(settings.MediaKeys);
-            if (settings.Left.HasValue && settings.Top.HasValue) {
+            if (settings.ModePositions.TryGetValue(settings.Mode.ToString(System.Globalization.CultureInfo.InvariantCulture), out var position)) PlacePlayer(position);
+            else if (settings.Left.HasValue && settings.Top.HasValue) {
                 var monitor = System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s => settings.Left.Value >= s.WorkingArea.Left && settings.Left.Value < s.WorkingArea.Right && settings.Top.Value >= s.WorkingArea.Top && settings.Top.Value < s.WorkingArea.Bottom);
                 if (monitor != null) { Left = settings.Left.Value; Top = settings.Top.Value; }
             }
-            FavoriteButton.Content = preferences.Favorites.Any(f => f.Id == currentSongId) ? "♥" : "♡";
+            SyncFavoriteButtons();
         } catch { preferences = before; throw; }
         finally { restoring = false; }
         SavePreferences(); Status.Text = "Sauvegarde importée · favoris fusionnés.";

@@ -119,7 +119,8 @@ sealed class UpdateClient : IDisposable
                     if (!ValidRedirect(address)) throw new InvalidDataException("La redirection sort des serveurs de téléchargement GitHub autorisés.");
                     continue;
                 }
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException("GitHub a refusé le téléchargement (HTTP " + (int)response.StatusCode + ").");
                 if (response.Content.Headers.ContentLength.HasValue && response.Content.Headers.ContentLength.Value != release.Size) throw new InvalidDataException("La taille du fichier ne correspond pas à la release.");
                 using var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 using (var output = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true)) {
@@ -166,7 +167,7 @@ public partial class MainWindow
     Window? updateWindow;
     TextBlock? updateMessage, updateNotes;
     ProgressBar? updateProgress;
-    Button? updateDownload, updateInstall, updateCancel;
+    Button? updateDownload, updateInstall, updateCancel, updateRetry;
     UpdateRelease? offeredUpdate;
     string? verifiedInstaller;
     bool updateChecking, updateDownloading;
@@ -225,14 +226,19 @@ public partial class MainWindow
         updateDownload = new Button { Content = "Télécharger la mise à jour", Visibility = Visibility.Collapsed }; updateDownload.Click += async (_, _) => await DownloadUpdateAsync(); body.Children.Add(updateDownload);
         updateInstall = new Button { Content = "Installer et fermer le lecteur", Visibility = Visibility.Collapsed }; updateInstall.Click += async (_, _) => await InstallUpdateAsync(); body.Children.Add(updateInstall);
         updateCancel = new Button { Content = "Annuler le téléchargement", Visibility = Visibility.Collapsed }; updateCancel.Click += (_, _) => updateOperation?.Cancel(); body.Children.Add(updateCancel);
+        updateRetry = new Button { Content = "Relancer la recherche", Visibility = Visibility.Collapsed };
+        updateRetry.Click += async (_, _) => await CheckUpdatesAsync(true);
+        body.Children.Add(updateRetry);
         body.Children.Add(new TextBlock { Text = "Source : Inmouved/Radio-IN sur GitHub.\nLe téléchargement ne coupe pas la radio. L’installation ferme le lecteur et conserve vos favoris et réglages.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap, FontSize = 12, Margin = new Thickness(0,12,0,0) });
         updateWindow = CreateInfoWindow("RADIO IN / MISE À JOUR", body, 550);
-        updateWindow.Closed += (_, _) => { updateOperation?.Cancel(); updateWindow = null; updateMessage = null; updateNotes = null; updateProgress = null; updateDownload = null; updateInstall = null; updateCancel = null; };
+        updateWindow.Closed += (_, _) => { updateOperation?.Cancel(); updateWindow = null; updateMessage = null; updateNotes = null; updateProgress = null; updateDownload = null; updateInstall = null; updateCancel = null; updateRetry = null; };
         UpdateOffer(); updateWindow.Show();
     }
     void UpdateOffer()
     {
         if (updateMessage == null) return;
+        updateRetry!.Visibility = Visibility.Collapsed;
+        updateDownload!.Content = "Télécharger la mise à jour";
         if (updateChecking) { updateMessage.Text = "Recherche des mises à jour…"; return; }
         if (offeredUpdate == null) return;
         updateMessage.Text = "Nouvelle version disponible : " + offeredUpdate.Name + (offeredUpdate.IsZip ? "\nMise à jour portable (ZIP)." : "\nInstallateur Windows.");
@@ -249,6 +255,8 @@ public partial class MainWindow
         if (updateChecking || updateDownloading) return;
         if (!manual && !UpdateClient.AutomaticCheckDue(preferences.LastUpdateCheckUtc,DateTime.UtcNow)) return;
         updateChecking = true; if (updateMessage != null) updateMessage.Text = "Recherche des mises à jour…";
+        if (updateRetry != null) updateRetry.Visibility = Visibility.Collapsed;
+        if (updateNotes != null) updateNotes.Text = "";
         offeredUpdate = null; verifiedInstaller = null;
         if (updateDownload != null) updateDownload.Visibility = updateInstall!.Visibility = Visibility.Collapsed;
         updateOperation?.Dispose(); updateOperation = CancellationTokenSource.CreateLinkedTokenSource(updateLifetime.Token);
@@ -267,29 +275,62 @@ public partial class MainWindow
                 tray.ShowBalloonTip(8000, "Radio IN — mise à jour disponible", release.Name + " · cliquez pour consulter les nouveautés.", System.Windows.Forms.ToolTipIcon.Info);
             } else { ShowUpdateWindow(); UpdateOffer(); }
         } catch(OperationCanceledException) {
-            if (!closed && manual && updateMessage != null) updateMessage.Text = "La recherche a expiré. Vérifiez votre connexion et réessayez.";
+            if (!closed && manual && updateMessage != null) { updateMessage.Text = "Le délai de recherche a expiré."; updateRetry!.Visibility = Visibility.Visible; }
         } catch(Exception ex) {
             LocalLog.Write("Recherche de mise à jour", ex);
-            if (!closed && manual && updateMessage != null) updateMessage.Text = "Vérification impossible. " + (ex is InvalidOperationException ? ex.Message : "Vérifiez votre connexion ou réessayez plus tard.");
+            if (!closed && manual && updateMessage != null) {
+                updateMessage.Text = "Vérification impossible. " + ExplainUpdateFailure(ex);
+                updateRetry!.Visibility = Visibility.Visible;
+            }
         } finally { updateChecking = false; }
     }
     async Task DownloadUpdateAsync()
     {
         if (offeredUpdate == null || updateDownloading) return;
         var release = offeredUpdate; var dialog = updateWindow;
-        updateDownloading = true; updateDownload!.IsEnabled = false; updateCancel!.Visibility = Visibility.Visible; updateProgress!.Visibility = Visibility.Visible;
+        updateDownloading = true;
+        updateDownload!.IsEnabled = false;
+        updateCancel!.Visibility = Visibility.Visible;
+        updateProgress!.Value = 0;
+        updateProgress.IsIndeterminate = true;
+        updateProgress.Visibility = Visibility.Visible;
+        updateMessage!.Text = "Connexion au serveur de téléchargement…";
         updateOperation?.Dispose(); updateOperation = CancellationTokenSource.CreateLinkedTokenSource(updateLifetime.Token);
+        var operation = updateOperation;
         try {
             using var client = new UpdateClient();
-            var progress = new Progress<int>(p => { if (updateWindow == dialog && updateProgress != null) { updateProgress.Value = p; updateMessage!.Text = "Téléchargement : " + p + " %"; } });
-            string file = await client.DownloadAsync(release, dataDirectory, progress, updateOperation.Token);
-            try { await Task.Run(() => VerifyUpdatePackage(file, release)); }
+            var progress = new Progress<int>(p => {
+                if (updateWindow != dialog || updateProgress == null || !updateDownloading || operation.IsCancellationRequested) return;
+                updateProgress.IsIndeterminate = p == 100;
+                updateProgress.Value = p;
+                updateMessage!.Text = p == 100 ? "Vérification du fichier téléchargé…" : "Téléchargement · " + p + " %";
+            });
+            string file = await client.DownloadAsync(release, dataDirectory, progress, operation.Token);
+            try { await Task.Run(() => VerifyUpdatePackage(file, release), operation.Token); operation.Token.ThrowIfCancellationRequested(); }
             catch { try { File.Delete(file); } catch { } throw; }
             if (closed || updateWindow != dialog) return;
             verifiedInstaller = file; UpdateOffer(); updateMessage!.Text = "Téléchargement vérifié. La mise à jour est prête à installer.";
-        } catch(OperationCanceledException) { if (!closed && updateWindow == dialog) updateMessage!.Text = "Téléchargement annulé ou délai dépassé. Le lecteur reste ouvert."; }
-        catch(Exception ex) { LocalLog.Write("Téléchargement de mise à jour", ex); if (!closed && updateWindow == dialog) updateMessage!.Text = "Mise à jour non installée. " + (ex is InvalidDataException ? ex.Message : "Le téléchargement a échoué. Réessayez plus tard."); }
-        finally { updateDownloading = false; if (updateWindow == dialog && updateDownload != null) { updateDownload.IsEnabled = true; updateCancel!.Visibility = Visibility.Collapsed; updateProgress!.Visibility = Visibility.Collapsed; } else if (updateWindow != null) UpdateOffer(); }
+        } catch (OperationCanceledException) {
+            if (!closed && updateWindow == dialog) updateMessage!.Text = operation.IsCancellationRequested ? "Téléchargement annulé." : "Le délai de téléchargement a expiré.";
+        } catch (Exception ex) {
+            LocalLog.Write("Téléchargement de mise à jour", ex);
+            if (!closed && updateWindow == dialog) updateMessage!.Text = "Échec du téléchargement. " + ExplainUpdateFailure(ex);
+        } finally {
+            updateDownloading = false;
+            if (updateWindow == dialog && updateDownload != null) {
+                updateDownload.IsEnabled = true;
+                if (verifiedInstaller == null) updateDownload.Content = "Réessayer le téléchargement";
+                updateCancel!.Visibility = updateProgress!.Visibility = Visibility.Collapsed;
+            } else if (updateWindow != null) UpdateOffer();
+        }
+    }
+    static string ExplainUpdateFailure(Exception error)
+    {
+        if (error is InvalidDataException || error is InvalidOperationException) return error.Message;
+        if (error is UnauthorizedAccessException) return "Windows refuse l’accès au dossier de téléchargement.";
+        if (error is IOException) return "Lecture ou écriture interrompue. Vérifiez le réseau et l’espace disque.";
+        if (error is HttpRequestException) return "Connexion à GitHub interrompue ou refusée. " + (error.InnerException?.Message ?? error.Message);
+        return "Consultez le journal depuis À propos pour le détail de l’erreur.";
     }
     async Task InstallUpdateAsync()
     {

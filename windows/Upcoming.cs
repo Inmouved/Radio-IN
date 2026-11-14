@@ -70,6 +70,7 @@ public partial class MainWindow
     readonly List<Track> sessionHistory = new();
     readonly Dictionary<string,ImageSource> queueArtCache = new();
     readonly HashSet<string> sessionEvents = new();
+    readonly Queue<string> recentSessionEvents = new();
     long currentPlayedAt;
     void InitializeUpcoming()
     {
@@ -86,6 +87,7 @@ public partial class MainWindow
     void OpenExtraPanel(string name)
     {
         extraView = name; Panels.Visibility = Visibility.Collapsed; ExtraPanel.Visibility = Visibility.Visible;
+        ExtraSearch.Visibility = Visibility.Collapsed;
         ExtraList.FontSize = 13 * preferences.TextScale;
         if (displayMode == 3) CoverStage.Visibility = Visibility.Collapsed;
         Dispatcher.BeginInvoke(new Action(FitExtraPanel));
@@ -124,14 +126,14 @@ public partial class MainWindow
             if (closed || generation != queueGeneration) return;
             upcoming = parsed; foreach (var row in parsed.Tracks) row.Artwork = queueArtCache.TryGetValue(row.Art,out var cached) ? cached : Icon;
             if (extraView == "queue") ExtraList.ItemsSource = parsed.Tracks;
-            UpdateQueueStatus();
+            UpdateQueueStatus(); UpdateRequestTracking();
             _ = LoadQueueArtwork(parsed,generation);
         } catch(Exception ex) {
             if (closed) return;
             queueError = "File indisponible. Réessayez dans quelques instants.";
             if (upcoming != null && DateTime.UtcNow - upcoming.UpdatedUtc <= TimeSpan.FromSeconds(90)) upcoming.Stale = true;
             else { upcoming = null; if (extraView == "queue") ExtraList.ItemsSource = null; }
-            LocalLog.Write("File des prochains titres",ex); UpdateQueueStatus();
+            LocalLog.Write("File des prochains titres",ex); UpdateQueueStatus(); UpdateRequestTracking();
         } finally { queueLoading = false; if (!closed) RefreshQueue.IsEnabled = true; }
     }
     async Task LoadQueueArtwork(UpcomingSnapshot snapshot, int generation)
@@ -154,19 +156,16 @@ public partial class MainWindow
         }
     }
     UpcomingTrack? FindQueued(string title, string artist) => upcoming == null || upcoming.Stale || DateTime.UtcNow - upcoming.UpdatedUtc > TimeSpan.FromSeconds(90) ? null : upcoming.Tracks.FirstOrDefault(t => NormalizeSearch(t.Title).Trim() == NormalizeSearch(title).Trim() && NormalizeSearch(t.Artist).Trim() == NormalizeSearch(artist).Trim());
-    bool ConfirmDuplicate(string url)
+    bool ConfirmDuplicate(string url, Track? track = null)
     {
         if (upcoming == null) return false;
-        Track? selected = Items.SelectedItem as Track;
-        string title = selected?.Url == url ? selected.Title : pendingFavoriteTitle;
-        string artist = selected?.Url == url ? selected.ArtistName : pendingFavoriteArtist;
-        var found = FindQueued(title,artist);
+        track ??= Items.SelectedItem is Track selected && selected.Url == url ? selected : null;
+        var found = track == null ? null : FindQueued(track.Title, track.ArtistName);
         if (found == null) return false;
         if (duplicateUrl == url && duplicateUntil > DateTime.UtcNow) { duplicateUrl = ""; return false; }
         duplicateUrl = url; duplicateUntil = DateTime.UtcNow.AddSeconds(20);
         ShowInlineNotice("« " + found.Title + " » est déjà annoncé dans la file. " + found.DateLabel + ". Pour envoyer malgré tout une nouvelle demande, cliquez de nouveau dans les 20 secondes."); return true;
     }
-    string pendingFavoriteTitle = "", pendingFavoriteArtist = "";
     void CaptureSession()
     {
         if (!playing || audio?.State != 3 || currentSongId.Length == 0) return;
@@ -175,7 +174,11 @@ public partial class MainWindow
     void RecordSessionTrack(string id,string title,string artist,long playedAt)
     {
         string key = id + "|" + playedAt;
+        if (sessionEvents.Count == 0) recentSessionEvents.Clear();
         if (!sessionEvents.Add(key)) return;
+        recentSessionEvents.Enqueue(key);
+        if (recentSessionEvents.Count > 500) sessionEvents.Remove(recentSessionEvents.Dequeue());
+        SaveListenedTrack(id, title, artist, playedAt);
         sessionHistory.Insert(0,new Track(title,DateTime.Now.ToString("HH:mm:ss") + " · " + artist,"") { Id = id, ArtistName = artist });
         if (sessionHistory.Count > 500) sessionHistory.RemoveAt(sessionHistory.Count - 1);
         if (extraView == "session") { ReplaceTracks(ExtraList,sessionHistory.ToList()); ExtraStatus.Text = sessionHistory.Count + " titres observés pendant l’écoute · cette session uniquement."; }
@@ -188,7 +191,7 @@ public partial class MainWindow
     void TickUpcoming()
     {
         CaptureSession();
-        if (upcoming != null && DateTime.UtcNow - upcoming.UpdatedUtc > TimeSpan.FromSeconds(100)) { upcoming = null; queueError = "File indisponible : la dernière liste est trop ancienne."; if (extraView == "queue") ExtraList.ItemsSource = null; UpdateQueueStatus(); }
+        if (upcoming != null && DateTime.UtcNow - upcoming.UpdatedUtc > TimeSpan.FromSeconds(100)) { upcoming = null; queueError = "File indisponible : la dernière liste est trop ancienne."; if (extraView == "queue") ExtraList.ItemsSource = null; UpdateQueueStatus(); UpdateRequestTracking(); }
         if (extraView == "queue" && upcoming != null) foreach (var row in upcoming.Tracks) row.Tick();
     }
 }
