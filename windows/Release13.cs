@@ -196,7 +196,7 @@ public partial class MainWindow
         if (newsWindow != null) { newsWindow.Activate(); return; }
         preferences.LastSeenVersion = AppInfo.Version; SavePreferences();
         var body = new StackPanel(); body.Children.Add(new TextBlock { Text = AppInfo.Version, Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,12) });
-        body.Children.Add(new TextBlock { Text = "Retrouvez vos demandes et votre historique d’écoute dans le menu ⋯.\n\nLe mode Pochette dispose du bouton Favoris et le mode Large d’un accès direct à À venir. Chaque mode mémorise sa position.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(new TextBlock { Text = "Le déplacement depuis le haut et les marges du lecteur est rétabli. Chaque mode mémorise sa position lorsque vous relâchez la souris.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
         var close = new Button { Content = "C’est parti", Margin = new Thickness(0,16,0,0) }; body.Children.Add(close);
         newsWindow = CreateInfoWindow("RADIO IN / NOUVEAUTÉS",body,490); close.Click += (_, _) => newsWindow?.Close(); newsWindow.Closed += (_, _) => newsWindow = null; newsWindow.Show();
     }

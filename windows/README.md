@@ -1,6 +1,6 @@
 # Code source Windows
 
-Ce dossier contient le code source de la **Bêta 1.4 Windows** de Radio IN.
+Ce dossier contient le code source de la **Bêta 1.4.1 Windows** de Radio IN. Ce correctif rétablit le déplacement par le haut et les marges du lecteur. La position est mémorisée par mode à la fin du déplacement.
 
 Le menu ⋯ donne accès à **Mes demandes**, à l’alerte facultative sur les demandes annoncées et à l’historique d’écoute. Le suivi rapproche les demandes acceptées de la file publique et des diffusions observées. L’historique conserve jusqu’à 1 000 passages écoutés et le suivi jusqu’à 200 demandes.
 

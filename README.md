@@ -8,7 +8,7 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 | Plateforme | Version et disponibilité |
 | --- | --- |
-| **Windows** | **Bêta 1.4** disponible — installateur ou version portable |
+| **Windows** | **Bêta 1.4.1** disponible — installateur ou version portable |
 | **Android** | **Bêta 1.3 Android** disponible — APK universel (Android 8+) |
 
 ### Android — Bêta 1.3
@@ -20,11 +20,11 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 
 Android Auto avec direct, file des titres à venir, favoris, demandes de titres, ajout aux favoris, commandes vocales et messages de reconnexion. L’application propose aussi la reprise après perte réseau, l’économie de données pour les pochettes, la gestion des interruptions audio et un widget d’accueil. Installation hors Google Play, compatible Android 8.0 ou supérieur sur appareils 32 et 64 bits. Android Auto nécessite Android 9 ou supérieur.
 
-### Windows — Bêta 1.4
+### Windows — Bêta 1.4.1
 
-- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.0-beta/RadioIN-Beta-1.4-Setup.exe)**
-- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.0-beta/RadioIN-Beta-1.4-Windows.zip)**
-- **[Lire les nouveautés de la Bêta 1.4](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.4.0-beta)**
+- **[Télécharger l’installateur Windows (.exe)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.1-beta/RadioIN-Beta-1.4.1-Setup.exe)**
+- **[Télécharger la version portable (.zip)](https://github.com/Inmouved/Radio-IN/releases/download/windows-v1.4.1-beta/RadioIN-Beta-1.4.1-Windows.zip)**
+- **[Lire les notes de la Bêta 1.4.1](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.4.1-beta)**
 - **[Consulter le code source Windows](windows/README.md)**
 
 **Configuration requise :** Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 ou supérieur et une connexion Internet. Le moteur audio est inclus : VLC n’a pas besoin d’être installé.
@@ -82,7 +82,7 @@ Les demandes dépendent du catalogue et des règles de la radio. Une demande acc
 ### Avec l’installateur
 
 1. Fermez l’ancienne version de Radio IN si elle est ouverte.
-2. Téléchargez **RadioIN-Beta-1.4-Setup.exe**.
+2. Téléchargez **RadioIN-Beta-1.4.1-Setup.exe**.
 3. Lancez le fichier et suivez l’assistant.
 4. Ouvrez Radio IN depuis le menu Démarrer ou le raccourci choisi.
 
@@ -90,7 +90,7 @@ L’installation concerne votre compte Windows et ne demande pas de droits admin
 
 ### En version portable
 
-1. Téléchargez **RadioIN-Beta-1.4-Windows.zip**.
+1. Téléchargez **RadioIN-Beta-1.4.1-Windows.zip**.
 2. Extrayez **tout le contenu** dans un dossier accessible en écriture.
 3. Lancez **RadioIN.exe** depuis ce dossier.
 

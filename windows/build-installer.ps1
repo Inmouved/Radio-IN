@@ -12,5 +12,5 @@ if (-not $CompilerPath) {
 if (-not $CompilerPath) { throw 'Compilateur Inno Setup 6.7.3 ou supérieur requis. Utilisez -CompilerPath.' }
 & $CompilerPath (Join-Path $PSScriptRoot 'installer/RadioIN.iss')
 if ($LASTEXITCODE -ne 0) { throw "La compilation de l'installateur a échoué : $LASTEXITCODE" }
-& (Join-Path $PSScriptRoot 'installer/Normalize-ProductName.ps1') -InstallerPath (Join-Path $PSScriptRoot '../RadioIN-Beta-1.4-Setup.exe')
-Get-Item (Join-Path $PSScriptRoot '../RadioIN-Beta-1.4-Setup.exe') | Select-Object FullName,Length
+& (Join-Path $PSScriptRoot 'installer/Normalize-ProductName.ps1') -InstallerPath (Join-Path $PSScriptRoot '../RadioIN-Beta-1.4.1-Setup.exe')
+Get-Item (Join-Path $PSScriptRoot '../RadioIN-Beta-1.4.1-Setup.exe') | Select-Object FullName,Length

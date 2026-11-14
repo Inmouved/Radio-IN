@@ -36,7 +36,9 @@ public partial class MainWindow
     readonly JavaScriptSerializer listeningSerializer = new() { MaxJsonLength = 8 * 1024 * 1024 };
     string listeningPath => Path.Combine(dataDirectory, "listening.json");
     TextBox? historyFilter;
-    bool nativePositionReady, positioningMode, placementQueued;
+    bool nativePositionReady, positioningMode, placementQueued, windowMoveInProgress;
+    const int EnterSizeMove = 0x0231, ExitSizeMove = 0x0232;
+    const uint KeepWindowSizeAndOrder = 0x0015;
 
     void InitializeRelease14()
     {
@@ -198,9 +200,19 @@ public partial class MainWindow
             preferences.ModePositions[displayMode.ToString(CultureInfo.InvariantCulture)] = new ModePosition { X = rect.Left, Y = rect.Top };
     }
     void ConstrainPlayer() => PlacePlayer(null);
+    IntPtr TrackWindowMove(IntPtr handle, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message == EnterSizeMove) windowMoveInProgress = true;
+        else if (message == ExitSizeMove) {
+            windowMoveInProgress = false;
+            SavePreferences();
+            QueueConstrainPlayer();
+        }
+        return IntPtr.Zero;
+    }
     void QueueConstrainPlayer()
     {
-        if (!nativePositionReady || placementQueued || positioningMode) return;
+        if (!nativePositionReady || placementQueued || positioningMode || windowMoveInProgress) return;
         placementQueued = true;
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => {
             placementQueued = false;
@@ -209,14 +221,14 @@ public partial class MainWindow
     }
     void PlacePlayer(ModePosition? position)
     {
-        if (!nativePositionReady || positioningMode || closed || WindowState != WindowState.Normal) return;
+        if (!nativePositionReady || positioningMode || windowMoveInProgress || closed || WindowState != WindowState.Normal) return;
         var source = PresentationSource.FromVisual(this);
         var handle = new WindowInteropHelper(this).Handle;
         if (source?.CompositionTarget == null || !GetWindowRect(handle, out var rect)) return;
         int x = position?.X ?? rect.Left, y = position?.Y ?? rect.Top;
         var screens = System.Windows.Forms.Screen.AllScreens;
-        var screen = screens.FirstOrDefault(s => s.Bounds.Contains(x, y)) ??
-            (position != null ? System.Windows.Forms.Screen.PrimaryScreen : System.Windows.Forms.Screen.FromHandle(handle));
+        var screen = position == null ? System.Windows.Forms.Screen.FromHandle(handle) :
+            screens.FirstOrDefault(s => s.Bounds.Contains(x, y)) ?? System.Windows.Forms.Screen.PrimaryScreen;
         if (screen == null) return;
         var area = screen.WorkingArea;
         positioningMode = true;
@@ -224,16 +236,18 @@ public partial class MainWindow
             if (position != null && !screen.Bounds.Contains(x, y)) { x = area.Left; y = area.Top; }
             // Move first so WPF updates its DPI transform on the target monitor.
             if (position != null && (x != rect.Left || y != rect.Top))
-                SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, 0x15);
+                SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, KeepWindowSizeAndOrder);
             var scale = source.CompositionTarget.TransformFromDevice;
             MaxHeight = Math.Max(1, area.Height * scale.M22);
             Width = Math.Min(displayMode == 2 ? 860 : 440, area.Width * scale.M11);
             CoverStage.Height = Math.Max(1, Math.Min(402, Width - 38));
             if (position != null) UpdateLayout();
-            if (!GetWindowRect(handle, out rect)) return;
+            // Only restore/clamp an explicit saved position. A metadata refresh or a
+            // DPI change must not pull a manually positioned window away from the cursor.
+            if (position == null || !GetWindowRect(handle, out rect)) return;
             var clamped = ClampPlacement(x, y, rect.Right - rect.Left, rect.Bottom - rect.Top, area);
             if (clamped.X != rect.Left || clamped.Y != rect.Top)
-                SetWindowPos(handle, IntPtr.Zero, clamped.X, clamped.Y, 0, 0, 0x15);
+                SetWindowPos(handle, IntPtr.Zero, clamped.X, clamped.Y, 0, 0, KeepWindowSizeAndOrder);
         } finally { positioningMode = false; }
     }
     static System.Drawing.Point ClampPlacement(int x, int y, int width, int height, System.Drawing.Rectangle area) =>

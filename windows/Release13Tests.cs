@@ -230,9 +230,16 @@ public partial class MainWindow
             if (!playing) TogglePlay(this,new RoutedEventArgs()); await Task.Delay(12000); CheckAudio();
             if (audio?.State != 3 || audio.Time <= 0 || sessionHistory.Count == 0) throw new InvalidOperationException("Lecture ou historique de session non démarré.");
             results.Add("Audio réel : état=" + audio.State + " ; temps=" + audio.Time + " ms ; session=" + sessionHistory.Count);
+            async Task WaitForVolume(int target)
+            {
+                var until = DateTime.UtcNow.AddSeconds(3);
+                while (Math.Abs(audio.VolumePercent - target) > 1 && DateTime.UtcNow < until) await Task.Delay(50);
+                results.Add("Volume VLC=" + audio.VolumePercent + " ; attendu=" + target + " ; état=" + audio.State + " ; muet=" + muted + " ; animation=" + listeningAnimated);
+            }
             Volume.Value = .35; ToggleMute(); CheckAudio();
+            await WaitForVolume(0);
             if (!muted || Volume.Value != .35 || listeningAnimated || audio.VolumePercent != 0) throw new InvalidOperationException("Muet/animation");
-            ToggleMute(); await Task.Delay(200); results.Add("Volume VLC après rétablissement=" + audio.VolumePercent + "; curseur=" + Volume.Value + "; gain=" + sleepGain);
+            ToggleMute(); await WaitForVolume(35);
             if (Math.Abs(audio.VolumePercent - 35) > 1) throw new InvalidOperationException("Volume rétabli incorrect"); results.Add("Muet réel VLC : 0 %, puis rétablissement à 35 %.");
             ShowSessionHistory(); UpdateLayout(); SaveBetaPreview("beta13-session-live.png");
             TogglePlay(this,new RoutedEventArgs());

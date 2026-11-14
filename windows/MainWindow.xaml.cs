@@ -35,7 +35,7 @@ public partial class MainWindow : Window
         searchTimer.Tick += async (_, _) => { searchTimer.Stop(); if (Drawer.Visibility == Visibility.Visible && requesting) { query = Search.Text.Trim(); page = 1; await LoadRequests(); } };
         try { audio = new NativeAudio(); audio.SetVolume(Volume.Value); }
         catch (Exception ex) { LocalLog.Write("Initialisation audio", ex); Status.Text = "Moteur audio : " + ex.Message; Play.IsEnabled = false; }
-        Loaded += async (_, _) => { await Refresh(); timer.Start(); };
+        Loaded += async (_, _) => { await Refresh(); if (!closed) timer.Start(); };
         timer.Tick += async (_, _) => { await Refresh(); if (!closed && displayMode == 2 && requesting && !loading && !sending) await LoadRequests(true); };
         audioTimer.Tick += (_, _) => CheckAudio();
         audioTimer.Start();
@@ -60,7 +60,10 @@ public partial class MainWindow : Window
                     results.Add($"Mode {modes[mode]}: {ActualWidth}x{ActualHeight}; navigation={Navigation.Visibility}; history={HistoryPane.Visibility}; requests={Drawer.Visibility}");
                     if (mode == 2) { while (loading) await Task.Delay(100); results.Add($"Live history={LiveHistory.Items.Count}; catalogue={Items.Items.Count}"); }
                 }
+                ChangeMode(2);
                 Search.Text = "Dredg"; await Task.Delay(1000); while (loading) await Task.Delay(100);
+                if (Items.Items.Count == 0 || Items.Items.Cast<Track>().Any(t => t.ArtistName != "Dredg"))
+                    throw new InvalidOperationException("La recherche du catalogue ne retourne pas les titres attendus.");
                 results.Add($"Live search Dredg={Items.Items.Count}");
                 ChangeMode(1); TogglePlay(this, new RoutedEventArgs()); await Task.Delay(10000);
                 results.Add($"Reduced audio: state={audio?.State}, time={audio?.Time}ms");

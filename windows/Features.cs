@@ -3,6 +3,7 @@ using System.Web.Script.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -23,11 +24,9 @@ public partial class MainWindow
             applicationIcon = (System.Drawing.Icon)loadedIcon.Clone();
         }
         Closed += (_, _) => { applicationIcon?.Dispose(); applicationIcon = null; };
-        // Listen on the whole window so the outer margins and free spaces work too.
-        MouseLeftButtonDown += (_, e) => {
-            DragWindow(this, e);
-            if (e.Handled) SavePreferences();
-        };
+        // Observe the tunnel before the outer ScrollViewer can capture the mouse.
+        AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler((_, e) => DragWindow(this, e)), true);
+        SourceInitialized += (_, _) => HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(TrackWindowMove);
         MinimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
         CloseWindowButton.Click += (_, _) => Close();
         CloseWindowButton.MouseEnter += (_, _) => CloseWindowButton.Background = new SolidColorBrush(Color.FromRgb(164, 48, 61));
@@ -58,9 +57,22 @@ public partial class MainWindow
                         Interactive(Volume, modes[mode] + " : volume protégé");
                     }
                     if (mode == 0) Interactive(Pin, "Compact : épingle protégée");
+                    if (mode == 3) { SetCoverControls(true); UpdateLayout(); Interactive(CoverFavorite, "Pochette : cœur protégé"); }
                     if (mode == 2) { Interactive(Search, "Large : recherche protégée"); Interactive(Items, "Large : catalogue protégé"); Interactive(LiveHistory, "Large : historique protégé"); }
                 }
                 Check(!CanStartWindowDrag(this, new System.Windows.Documents.Hyperlink()), "Liens protégés");
+                Check(!CanStartWindowDrag(this, new System.Windows.Documents.Run("Texte")), "Texte détaché protégé");
+                var handle = new WindowInteropHelper(this).Handle;
+                Check(GetWindowRect(handle, out var before), "Position initiale lue");
+                bool handled = false;
+                TrackWindowMove(handle, EnterSizeMove, IntPtr.Zero, IntPtr.Zero, ref handled);
+                Check(windowMoveInProgress, "Début du déplacement natif détecté");
+                Check(SetWindowPos(handle, IntPtr.Zero, before.Left - 16, before.Top + 12, 0, 0, KeepWindowSizeAndOrder), "Déplacement de la fenêtre Win32");
+                ConstrainPlayer();
+                Check(GetWindowRect(handle, out var after) && after.Left == before.Left - 16 && after.Top == before.Top + 12,
+                    "Le recalcul du lecteur ne reprend pas la main pendant le déplacement");
+                TrackWindowMove(handle, ExitSizeMove, IntPtr.Zero, IntPtr.Zero, ref handled);
+                Check(!windowMoveInProgress && preferences.ModePositions[displayMode.ToString()].X == after.Left, "Position mémorisée à la fin du déplacement");
             } catch(Exception ex) { results.Add("ERROR: " + ex); Environment.ExitCode = 1; }
             File.WriteAllLines(Path.Combine(AppContext.BaseDirectory, "drag-test.txt"), results); Close();
         };
@@ -72,7 +84,7 @@ public partial class MainWindow
             if (node is System.Windows.Controls.Primitives.ButtonBase ||
                 node is System.Windows.Controls.Primitives.TextBoxBase || node is PasswordBox ||
                 node is System.Windows.Controls.Primitives.Selector ||
-                node is ScrollViewer scroll && scroll.Name != "PlayerViewport" ||
+                node is ScrollViewer scroll && (window is not MainWindow player || !ReferenceEquals(scroll, player.PlayerViewport)) ||
                 node is System.Windows.Controls.Primitives.RangeBase || node is System.Windows.Controls.Primitives.Thumb ||
                 node is System.Windows.Controls.Primitives.MenuBase || node is System.Windows.Documents.Hyperlink) return false;
             node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
@@ -81,8 +93,10 @@ public partial class MainWindow
     }
     static void DragWindow(Window window, MouseButtonEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed || !CanStartWindowDrag(window, e.OriginalSource as DependencyObject)) return;
-        try { window.DragMove(); e.Handled = true; } catch (InvalidOperationException) { }
+        if (e.ChangedButton != MouseButton.Left || e.LeftButton != MouseButtonState.Pressed ||
+            !CanStartWindowDrag(window, e.OriginalSource as DependencyObject)) return;
+        e.Handled = true;
+        try { window.DragMove(); } catch (InvalidOperationException) { }
     }
     static void AddRoundedCorners(Window window)
     {

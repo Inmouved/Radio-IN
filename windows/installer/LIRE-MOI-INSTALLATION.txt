@@ -1,4 +1,4 @@
-RADIO IN — BÊTA 1.4
+RADIO IN — BÊTA 1.4.1
 Windows 10/11 64 bits ; .NET Framework 4.8 ou supérieur.
 Le moteur audio est inclus : aucune installation de VLC nécessaire.
 
@@ -42,7 +42,7 @@ Ctrl+H : historique ; Ctrl+R : demandes ; Ctrl+N : notifications.
 Les touches Suivant/Précédent ne changent pas les titres d'une radio en direct.
 
 INSTALLATION
-Fermer Radio IN puis lancer RadioIN-Beta-1.4-Setup.exe. Installation pour
+Fermer Radio IN puis lancer RadioIN-Beta-1.4.1-Setup.exe. Installation pour
 le compte Windows courant, sans demande de droits administrateur.
 Dossier proposé : %LOCALAPPDATA%\Programs\Radio IN
 Raccourci menu Démarrer ; raccourci Bureau facultatif. L'installation n'active
@@ -50,7 +50,7 @@ pas le lancement avec Windows ; si déjà activé, son chemin est actualisé.
 La mise à jour conserve les favoris et réglages.
 
 VERSION PORTABLE
-Extraire tout RadioIN-Beta-1.4-Windows.zip dans un dossier accessible en écriture,
+Extraire tout RadioIN-Beta-1.4.1-Windows.zip dans un dossier accessible en écriture,
 puis lancer RadioIN.exe. Conserver les DLL et plugins avec le programme.
 
 MISES À JOUR
