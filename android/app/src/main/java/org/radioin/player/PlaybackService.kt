@@ -31,9 +31,10 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 @androidx.annotation.OptIn(UnstableApi::class)
-internal fun radioLibrarySessionCommands(includeSleep: Boolean, favoriteCommand: SessionCommand) =
+internal fun radioLibrarySessionCommands(includeSleep: Boolean, favoriteCommand: SessionCommand, addFavoriteCommand: SessionCommand? = null) =
     MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
         .add(favoriteCommand)
+        .apply { addFavoriteCommand?.let { add(it) } }
         .apply { if (includeSleep) add(SessionCommand(PlaybackService.SLEEP, Bundle.EMPTY)) }
         .build()
 
@@ -44,6 +45,7 @@ class PlaybackService : MediaLibraryService() {
         const val WIDGET_TOGGLE = "radioin.widget.TOGGLE"
         private const val ROOT_ID = "radioin.root"
         private const val LIVE_ID = "radioin.live"
+        private const val UPCOMING_ID = "radioin.upcoming"
         private const val FAVORITES_ID = "radioin.favorites"
         var isPlaying = false
             private set
@@ -60,6 +62,7 @@ class PlaybackService : MediaLibraryService() {
     private var previousSong = ""
     private var observedPosition = 0L
     private var stalledAt = 0L
+    private var upcoming = emptyList<RadioRepository.QueuedTrack>()
     private lateinit var connectivity: ConnectivityManager
     private val networkRetry = Runnable {
         if (wantsPlayback && !player.isPlaying && player.playbackState in listOf(Player.STATE_IDLE, Player.STATE_BUFFERING)) {
@@ -82,8 +85,11 @@ class PlaybackService : MediaLibraryService() {
     }
     private val metadataListener: () -> Unit = { updateMetadata() }
     private val requestFavoriteCommand = SessionCommand("radioin.requestFavorite", Bundle.EMPTY)
+    private val addFavoriteCommand = SessionCommand("radioin.addFavorite", Bundle.EMPTY)
     private val favoriteRequestButton = CommandButton.Builder(CommandButton.ICON_PLAYLIST_ADD)
         .setDisplayName("Demander ce titre").setSessionCommand(requestFavoriteCommand).build()
+    private val addFavoriteButton = CommandButton.Builder(CommandButton.ICON_HEART_UNFILLED)
+        .setDisplayName("Ajouter aux favoris").setSessionCommand(addFavoriteCommand).build()
     private val libraryCallback = object : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
             val accepted = controller.packageName == packageName || controller.isTrusted || controller.packageName == "com.google.android.projection.gearhead"
@@ -91,7 +97,7 @@ class PlaybackService : MediaLibraryService() {
             // Android Auto needs the library commands as well as playback commands to load
             // the root and its children. DEFAULT_SESSION_COMMANDS alone leaves its browser
             // spinning and it eventually reports that the app is unavailable.
-            val commands = radioLibrarySessionCommands(controller.packageName == packageName, requestFavoriteCommand)
+            val commands = radioLibrarySessionCommands(controller.packageName == packageName, requestFavoriteCommand, addFavoriteCommand)
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(commands)
                 .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
@@ -103,14 +109,32 @@ class PlaybackService : MediaLibraryService() {
                 sleepDeadline = if (minutes == 0) 0 else SystemClock.elapsedRealtime() + minutes * 60000L
                 app.repo.changed(); return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
-            val id = args.getString(MediaConstants.EXTRA_KEY_MEDIA_ID)?.removePrefix("favorite:")
+            if (controller.packageName != "com.google.android.projection.gearhead") {
+                return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
+            }
+            val mediaId = args.getString(MediaConstants.EXTRA_KEY_MEDIA_ID)
+            if (customCommand.customAction == addFavoriteCommand.customAction && mediaId == LIVE_ID) {
+                app.store.add(app.repo.current)
+                app.repo.changed()
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            val id = mediaId?.removePrefix("favorite:")
             val track = app.store.favorites().firstOrNull { it.id == id }
-            if (customCommand.customAction != requestFavoriteCommand.customAction || controller.packageName != "com.google.android.projection.gearhead" || track == null) {
+            if (customCommand.customAction != requestFavoriteCommand.customAction || track == null) {
                 return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
             }
             val future = com.google.common.util.concurrent.SettableFuture.create<SessionResult>()
             requestFavorite(track) { ok -> future.set(SessionResult(if (ok) SessionResult.RESULT_SUCCESS else SessionError.ERROR_UNKNOWN)) }
             return future
+        }
+        override fun onSetMediaItems(session: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: List<MediaItem>, startIndex: Int, startPositionMs: Long): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            // Assistant and Android Auto may provide a search-only media item for a
+            // voice request. Radio IN has one live stream, so every such request
+            // resolves safely to the current live item.
+            val resolved = mediaItems.map { requested ->
+                if (requested.mediaId == LIVE_ID || !requested.requestMetadata.searchQuery.isNullOrBlank()) item(app.repo.current) else requested
+            }
+            return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(resolved, 0, startPositionMs))
         }
         override fun onGetLibraryRoot(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: LibraryParams?): ListenableFuture<LibraryResult<MediaItem>> {
             val root = browseItem(ROOT_ID, "Radio IN", browsable = true, playable = false)
@@ -118,20 +142,38 @@ class PlaybackService : MediaLibraryService() {
         }
         override fun onGetChildren(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: LibraryParams?): ListenableFuture<LibraryResult<com.google.common.collect.ImmutableList<MediaItem>>> {
             val items = when (parentId) {
-                ROOT_ID -> listOf(browseItem(LIVE_ID, "Radio IN · En direct", false, true), browseItem(FAVORITES_ID, "Mes favoris", true, false))
+                ROOT_ID -> listOf(item(app.repo.current), browseItem(UPCOMING_ID, "À venir", true, false), browseItem(FAVORITES_ID, "Mes favoris", true, false))
+                UPCOMING_ID -> upcoming.map { upcomingItem(it) }
                 FAVORITES_ID -> app.store.favorites().map { favoriteItem(it) }
                 else -> emptyList()
             }
             val start = (page.coerceAtLeast(0) * pageSize.coerceAtLeast(1)).coerceAtMost(items.size)
             val result = com.google.common.collect.ImmutableList.copyOf(items.drop(start).take(pageSize.coerceAtLeast(1)))
-            return Futures.immediateFuture(LibraryResult.ofItemList(result, params))
+            if (parentId != UPCOMING_ID) return Futures.immediateFuture(LibraryResult.ofItemList(result, params))
+            val future = com.google.common.util.concurrent.SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<MediaItem>>>()
+            app.repo.upcoming { response ->
+                response.fold({ snapshot ->
+                    upcoming = snapshot.tracks
+                    val queue = com.google.common.collect.ImmutableList.copyOf(upcoming.map { upcomingItem(it) }.drop(start).take(pageSize.coerceAtLeast(1)))
+                    future.set(LibraryResult.ofItemList(queue, params))
+                }, { error ->
+                    app.repo.log("File Android Auto", error)
+                    future.set(LibraryResult.ofItemList(listOf(browseItem("radioin.upcoming.unavailable", "File momentanément indisponible", false, false)), params))
+                })
+            }
+            return future
         }
         override fun onGetItem(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, mediaId: String): ListenableFuture<LibraryResult<MediaItem>> {
             val item = when (mediaId) {
                 ROOT_ID -> browseItem(ROOT_ID, "Radio IN", true, false)
                 LIVE_ID -> item(app.repo.current)
+                UPCOMING_ID -> browseItem(UPCOMING_ID, "À venir", true, false)
                 FAVORITES_ID -> browseItem(FAVORITES_ID, "Mes favoris", true, false)
-                else -> if (mediaId.startsWith("favorite:")) app.store.favorites().firstOrNull { it.id == mediaId.removePrefix("favorite:") }?.let { favoriteItem(it) } else null
+                else -> when {
+                    mediaId.startsWith("favorite:") -> app.store.favorites().firstOrNull { it.id == mediaId.removePrefix("favorite:") }?.let { favoriteItem(it) }
+                    mediaId.startsWith("upcoming:") -> upcoming.firstOrNull { "upcoming:${it.track.id}" == mediaId }?.let { upcomingItem(it) }
+                    else -> null
+                }
             }
             return Futures.immediateFuture(if (item == null) LibraryResult.ofError(SessionError.ERROR_BAD_VALUE) else LibraryResult.ofItem(item, null))
         }
@@ -165,7 +207,7 @@ class PlaybackService : MediaLibraryService() {
         }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         session = MediaLibrarySession.Builder(this, player, libraryCallback).setSessionActivity(open)
-            .setCommandButtonsForMediaItems(listOf(favoriteRequestButton)).build()
+            .setCommandButtonsForMediaItems(listOf(addFavoriteButton, favoriteRequestButton)).build()
         player.addListener(object : Player.Listener {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 wantsPlayback = playWhenReady
@@ -202,8 +244,16 @@ class PlaybackService : MediaLibraryService() {
         MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setArtworkUri(track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) })
             .setIsBrowsable(false).setIsPlayable(false).setSupportedCommands(listOf(requestFavoriteCommand.customAction)).build()
     ).build()
+    private fun upcomingItem(queued: RadioRepository.QueuedTrack) = MediaItem.Builder().setMediaId("upcoming:${queued.track.id}").setMediaMetadata(
+        MediaMetadata.Builder().setTitle(queued.track.title).setArtist(queued.track.artist)
+            .setAlbumTitle(if (queued.requested) "Demande auditeur" else "À venir")
+            .setArtworkUri(queued.track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) })
+            .setIsBrowsable(false).setIsPlayable(false).build()
+    ).build()
     private fun item(track: Track) = MediaItem.Builder().setMediaId(LIVE_ID).setUri(RadioRepository.STREAM).setMediaMetadata(
-        MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle("Radio IN · En direct").setIsPlayable(true).setArtworkUri(track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) }).build()
+        MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle("RADIO IN").setIsPlayable(true)
+            .setSupportedCommands(listOf(addFavoriteCommand.customAction))
+            .setArtworkUri(track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) }).build()
     ).build()
     private fun requestFavorite(favorite: Track, page: Int = 1, done: (Boolean) -> Unit) {
         if (!app.repo.requestsEnabled || page > 50) { done(false); return }

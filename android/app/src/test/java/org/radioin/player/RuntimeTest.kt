@@ -63,13 +63,15 @@ class RuntimeTest {
     }
     @Test fun androidAutoConnectionIncludesLibraryBrowsingAndFavoriteRequestCommands() {
         val favorite = SessionCommand("radioin.requestFavorite.test", android.os.Bundle.EMPTY)
-        val commands = radioLibrarySessionCommands(includeSleep = false, favoriteCommand = favorite)
+        val addFavorite = SessionCommand("radioin.addFavorite.test", android.os.Bundle.EMPTY)
+        val commands = radioLibrarySessionCommands(includeSleep = false, favoriteCommand = favorite, addFavoriteCommand = addFavorite)
         assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_LIBRARY_ROOT))
         assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_CHILDREN))
         assertTrue(commands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_ITEM))
         assertTrue(commands.contains(favorite))
+        assertTrue(commands.contains(addFavorite))
         assertFalse(commands.contains(SessionCommand(PlaybackService.SLEEP, android.os.Bundle.EMPTY)))
-        assertTrue(radioLibrarySessionCommands(true, favorite).contains(SessionCommand(PlaybackService.SLEEP, android.os.Bundle.EMPTY)))
+        assertTrue(radioLibrarySessionCommands(true, favorite, addFavorite).contains(SessionCommand(PlaybackService.SLEEP, android.os.Bundle.EMPTY)))
     }
     @Test fun metadataHistoryAndCatalogueAreParsed() {
         app.repo.refresh(); waitFor { app.repo.current.id == "live" }

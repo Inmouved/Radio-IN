@@ -1,4 +1,4 @@
-# Radio IN — Bêta 1.2 Android
+# Radio IN — Bêta 1.3 Android
 
 Application native Kotlin, Android 8.0/API 26 minimum, cible Android 16/API 36.
 Un APK universel, sans bibliothèque native ni VLC, pour les architectures ARM et x86.
@@ -6,9 +6,12 @@ Un APK universel, sans bibliothèque native ni VLC, pour les architectures ARM e
 ## Fonctions
 
 Lecture HTTPS en service MediaLibraryService/ExoPlayer : arrière-plan, média système,
-écran verrouillé, Android Auto (direct et favoris avec action de demande), gestion du
-focus audio, interruptions et débranchement des écouteurs. Android Auto nécessite
-Android 9/API 28 ou supérieur ; le lecteur reste compatible dès Android 8/API 26.
+écran verrouillé, Android Auto avec un accueil `RADIO IN`, la file « À venir », les
+favoris, l’ajout du titre en cours aux favoris et la demande d’un titre favori. Les
+commandes vocales de lecture sont résolues vers le direct ; la dernière pochette et
+le dernier titre restent affichés pendant une reconnexion. Gestion du focus audio,
+interruptions et débranchement des écouteurs. Android Auto nécessite Android 9/API 28
+ou supérieur ; le lecteur reste compatible dès Android 8/API 26.
 Écran compact avec design automatique fondé sur la pochette. Historique, file « À venir »
 et demandes de titres sont accessibles depuis le lecteur. Les listes de titres peuvent
 être ajoutées aux favoris. Historique de session local, recherche de mises à jour Android,
@@ -50,7 +53,8 @@ Application ID stable : `org.radioin.player` ; alias de signature : `radioin`.
 Tests Robolectric sur API 26, 28, 33, 35 et 36 : sauvegardes Windows/Android,
 validation sans perte des fichiers refusés, favoris, réglages, écran compact et ses
 sections, création/libération du service, parsing des API et demandes simulées
-avec refroidissement serveur. Aucune demande réelle n'est envoyée par ces tests.
+avec refroidissement serveur. Les commandes de bibliothèque Android Auto et les deux
+actions de favoris sont vérifiées. Aucune demande réelle n'est envoyée par ces tests.
 Test de rendu graphique natif de l'écran compact sur un écran 393 × 851 dp.
 Captures dans `app/build/previews/` ; il s'agit de données de démonstration.
 
