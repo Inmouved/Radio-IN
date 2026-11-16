@@ -7,9 +7,9 @@ android {
         applicationId = "org.radioin.player"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "Bêta 1.3 Android"
-        buildConfigField("String", "RELEASE_VERSION", "\"1.3.0\"")
+        versionCode = 6
+        versionName = "Bêta 1.3.1 Android"
+        buildConfigField("String", "RELEASE_VERSION", "\"1.3.1\"")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

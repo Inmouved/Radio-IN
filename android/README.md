@@ -1,4 +1,6 @@
-# Radio IN — Bêta 1.3 Android
+# Radio IN — Bêta 1.3.1 Android
+
+Ce correctif résout le plantage à l’ouverture du lecteur dans Android Auto. La liste « À venir » affiche son état de chargement sans bloquer la navigation, et les informations du direct s’actualisent au retour du réseau.
 
 Application native Kotlin, Android 8.0/API 26 minimum, cible Android 16/API 36.
 Un APK universel, sans bibliothèque native ni VLC, pour les architectures ARM et x86.

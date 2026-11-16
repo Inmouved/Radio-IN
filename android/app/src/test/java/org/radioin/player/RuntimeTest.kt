@@ -61,6 +61,24 @@ class RuntimeTest {
         assertFalse(app.repo.playbackActive)
         assertEquals(0L, PlaybackService.sleepDeadline)
     }
+    @Test fun androidAutoCanReturnTheDirectStreamAndBrowseTheHomeScreen() {
+        val lifecycle = Robolectric.buildService(PlaybackService::class.java).create()
+        try {
+            val service = lifecycle.get()
+            val children = service.rootItems()
+            assertEquals(listOf("RADIO IN", "À venir", "Mes favoris"), children.map { it.mediaMetadata.title.toString() })
+            assertEquals(listOf(false, true, true), children.map { it.mediaMetadata.isBrowsable })
+            androidx.media3.session.LibraryResult.ofItemList(children, null)
+            val live = service.item(Track("test", "Titre du direct", "Artiste"))
+            assertEquals(children.first().mediaId, live.mediaId)
+            assertEquals(false, live.mediaMetadata.isBrowsable)
+            assertEquals(true, live.mediaMetadata.isPlayable)
+            assertEquals(RadioRepository.STREAM, live.localConfiguration?.uri.toString())
+            androidx.media3.session.LibraryResult.ofItem(live, null)
+        } finally {
+            lifecycle.destroy()
+        }
+    }
     @Test fun androidAutoConnectionIncludesLibraryBrowsingAndFavoriteRequestCommands() {
         val favorite = SessionCommand("radioin.requestFavorite.test", android.os.Bundle.EMPTY)
         val addFavorite = SessionCommand("radioin.addFavorite.test", android.os.Bundle.EMPTY)

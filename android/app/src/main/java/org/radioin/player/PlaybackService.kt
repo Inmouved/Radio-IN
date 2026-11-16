@@ -29,6 +29,7 @@ import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionError
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.collect.ImmutableList
 
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun radioLibrarySessionCommands(includeSleep: Boolean, favoriteCommand: SessionCommand, addFavoriteCommand: SessionCommand? = null) =
@@ -63,8 +64,17 @@ class PlaybackService : MediaLibraryService() {
     private var observedPosition = 0L
     private var stalledAt = 0L
     private var upcoming = emptyList<RadioRepository.QueuedTrack>()
+    private var upcomingLoading = false
+    private var upcomingCheckedAt: Long? = null
+    private var upcomingUpdatedAt: Long? = null
+    private var upcomingFailed = false
     private lateinit var connectivity: ConnectivityManager
     private val networkRetry = Runnable {
+        app.repo.refresh()
+        if (upcomingCheckedAt != null && upcomingFailed) {
+            upcomingCheckedAt = null
+            refreshUpcoming()
+        }
         if (wantsPlayback && !player.isPlaying && player.playbackState in listOf(Player.STATE_IDLE, Player.STATE_BUFFERING)) {
             app.repo.main.removeCallbacks(retry); attempts = 0
             player.stop(); player.prepare(); player.play(); connection = "Réseau rétabli · reconnexion…"; app.repo.changed()
@@ -74,7 +84,8 @@ class PlaybackService : MediaLibraryService() {
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             app.repo.main.removeCallbacks(networkLost)
-            if (wantsPlayback) { app.repo.main.removeCallbacks(networkRetry); app.repo.main.postDelayed(networkRetry, 1200) }
+            app.repo.main.removeCallbacks(networkRetry)
+            app.repo.main.postDelayed(networkRetry, 1200)
         }
         override fun onLost(network: Network) {
             if (wantsPlayback) {
@@ -140,28 +151,19 @@ class PlaybackService : MediaLibraryService() {
             val root = browseItem(ROOT_ID, "Radio IN", browsable = true, playable = false)
             return Futures.immediateFuture(LibraryResult.ofItem(root, params))
         }
-        override fun onGetChildren(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: LibraryParams?): ListenableFuture<LibraryResult<com.google.common.collect.ImmutableList<MediaItem>>> {
+        override fun onGetChildren(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: LibraryParams?): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val items = when (parentId) {
-                ROOT_ID -> listOf(item(app.repo.current), browseItem(UPCOMING_ID, "À venir", true, false), browseItem(FAVORITES_ID, "Mes favoris", true, false))
-                UPCOMING_ID -> upcoming.map { upcomingItem(it) }
+                ROOT_ID -> rootItems()
+                UPCOMING_ID -> {
+                    refreshUpcoming()
+                    upcomingItems()
+                }
                 FAVORITES_ID -> app.store.favorites().map { favoriteItem(it) }
                 else -> emptyList()
             }
-            val start = (page.coerceAtLeast(0) * pageSize.coerceAtLeast(1)).coerceAtMost(items.size)
-            val result = com.google.common.collect.ImmutableList.copyOf(items.drop(start).take(pageSize.coerceAtLeast(1)))
-            if (parentId != UPCOMING_ID) return Futures.immediateFuture(LibraryResult.ofItemList(result, params))
-            val future = com.google.common.util.concurrent.SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<MediaItem>>>()
-            app.repo.upcoming { response ->
-                response.fold({ snapshot ->
-                    upcoming = snapshot.tracks
-                    val queue = com.google.common.collect.ImmutableList.copyOf(upcoming.map { upcomingItem(it) }.drop(start).take(pageSize.coerceAtLeast(1)))
-                    future.set(LibraryResult.ofItemList(queue, params))
-                }, { error ->
-                    app.repo.log("File Android Auto", error)
-                    future.set(LibraryResult.ofItemList(listOf(browseItem("radioin.upcoming.unavailable", "File momentanément indisponible", false, false)), params))
-                })
-            }
-            return future
+            val size = pageSize.coerceAtLeast(1)
+            val start = (page.coerceAtLeast(0).toLong() * size).coerceAtMost(items.size.toLong()).toInt()
+            return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(items.drop(start).take(size)), params))
         }
         override fun onGetItem(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, mediaId: String): ListenableFuture<LibraryResult<MediaItem>> {
             val item = when (mediaId) {
@@ -171,11 +173,49 @@ class PlaybackService : MediaLibraryService() {
                 FAVORITES_ID -> browseItem(FAVORITES_ID, "Mes favoris", true, false)
                 else -> when {
                     mediaId.startsWith("favorite:") -> app.store.favorites().firstOrNull { it.id == mediaId.removePrefix("favorite:") }?.let { favoriteItem(it) }
-                    mediaId.startsWith("upcoming:") -> upcoming.firstOrNull { "upcoming:${it.track.id}" == mediaId }?.let { upcomingItem(it) }
+                    mediaId.startsWith("upcoming:") -> upcomingItems().firstOrNull { it.mediaId == mediaId }
                     else -> null
                 }
             }
             return Futures.immediateFuture(if (item == null) LibraryResult.ofError(SessionError.ERROR_BAD_VALUE) else LibraryResult.ofItem(item, null))
+        }
+    }
+    internal fun rootItems() = listOf(
+        browseItem(LIVE_ID, "RADIO IN", false, true),
+        browseItem(UPCOMING_ID, "À venir", true, false),
+        browseItem(FAVORITES_ID, "Mes favoris", true, false)
+    )
+
+    private fun upcomingItems(): List<MediaItem> {
+        val now = System.currentTimeMillis() / 1000
+        if (upcomingUpdatedAt?.let { now - it in -300..100 } == true) {
+            if (upcoming.isNotEmpty()) return upcoming.map(::upcomingItem)
+            if (!upcomingFailed && !upcomingLoading) {
+                return listOf(browseItem("upcoming:empty", "Aucun titre annoncé", false, false))
+            }
+        }
+        val title = if (upcomingLoading) "Chargement de la file…" else "File momentanément indisponible"
+        return listOf(browseItem("upcoming:status", title, false, false))
+    }
+
+    private fun refreshUpcoming() {
+        val activeSession = session ?: return
+        val now = SystemClock.elapsedRealtime()
+        if (upcomingLoading || upcomingCheckedAt?.let { now - it < 15000 } == true) return
+        upcomingLoading = true
+        app.repo.upcoming { response ->
+            if (session !== activeSession) return@upcoming
+            upcomingLoading = false
+            upcomingCheckedAt = SystemClock.elapsedRealtime()
+            response.fold({ snapshot ->
+                upcoming = snapshot.tracks.take(5)
+                upcomingUpdatedAt = snapshot.updated
+                upcomingFailed = snapshot.stale
+            }, { error ->
+                upcomingFailed = true
+                app.repo.log("File Android Auto", error)
+            })
+            activeSession.notifyChildrenChanged(UPCOMING_ID, upcomingItems().size, null)
         }
     }
     private val retry = Runnable {
@@ -197,7 +237,6 @@ class PlaybackService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate(); app = application as RadioApp
         connectivity = getSystemService(ConnectivityManager::class.java)
-        runCatching { connectivity.registerDefaultNetworkCallback(networkCallback) }.onFailure { app.repo.log("Surveillance du réseau", it) }
         player = ExoPlayer.Builder(this).build().apply {
             setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
             setHandleAudioBecomingNoisy(true)
@@ -230,6 +269,8 @@ class PlaybackService : MediaLibraryService() {
             override fun onPlayerError(error: PlaybackException) { app.repo.log("Lecture audio", error); if (wantsPlayback) scheduleRetry() }
         })
         app.repo.listeners.add(metadataListener); updateMetadata(); app.repo.refresh(); app.repo.main.post(timer)
+        runCatching { connectivity.registerDefaultNetworkCallback(networkCallback, app.repo.main) }
+            .onFailure { app.repo.log("Surveillance du réseau", it) }
     }
     private fun scheduleRetry() {
         app.repo.main.removeCallbacks(retry)
@@ -250,8 +291,8 @@ class PlaybackService : MediaLibraryService() {
             .setArtworkUri(queued.track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) })
             .setIsBrowsable(false).setIsPlayable(false).build()
     ).build()
-    private fun item(track: Track) = MediaItem.Builder().setMediaId(LIVE_ID).setUri(RadioRepository.STREAM).setMediaMetadata(
-        MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle("RADIO IN").setIsPlayable(true)
+    internal fun item(track: Track) = MediaItem.Builder().setMediaId(LIVE_ID).setUri(RadioRepository.STREAM).setMediaMetadata(
+        MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle("RADIO IN").setIsBrowsable(false).setIsPlayable(true)
             .setSupportedCommands(listOf(addFavoriteCommand.customAction))
             .setArtworkUri(track.art.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) }).build()
     ).build()
@@ -285,8 +326,15 @@ class PlaybackService : MediaLibraryService() {
             return START_NOT_STICKY
         }
         if (intent?.action == WIDGET_TOGGLE) {
-            if (player.playWhenReady) { player.pause(); player.stop() }
-            else { if (player.playbackState == Player.STATE_IDLE) player.prepare(); player.play() }
+            if (player.playWhenReady) {
+                player.pause()
+                player.stop()
+            } else {
+                if (player.playbackState == Player.STATE_IDLE) {
+                    player.prepare()
+                }
+                player.play()
+            }
             return START_NOT_STICKY
         }
         return super.onStartCommand(intent, flags, startId)

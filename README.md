@@ -9,13 +9,13 @@ L’application officielle pour écouter **Radio IN en direct**, consulter les d
 | Plateforme | Version et disponibilité |
 | --- | --- |
 | **Windows** | **Bêta 1.4.1** disponible — installateur ou version portable |
-| **Android** | **Bêta 1.3 Android** disponible — APK universel (Android 8+) |
+| **Android** | **Bêta 1.3.1 Android** disponible — APK universel (Android 8+) |
 
-### Android — Bêta 1.3
+### Android — Bêta 1.3.1
 
-- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.3.0-beta/RadioIN-Beta-1.3-Android.apk)**
-- **[Vérifier le fichier téléchargé (SHA-256)](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.3.0-beta/RadioIN-Beta-1.3-Android.apk.sha256)**
-- **[Lire les nouveautés et les instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.3.0-beta)**
+- **[Télécharger l’APK Android](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.3.1-beta/RadioIN-Beta-1.3.1-Android.apk)**
+- **[Vérifier le fichier téléchargé (SHA-256)](https://github.com/Inmouved/Radio-IN/releases/download/android-v1.3.1-beta/RadioIN-Beta-1.3.1-Android.apk.sha256)**
+- **[Lire les notes du correctif et les instructions d’installation](https://github.com/Inmouved/Radio-IN/releases/tag/android-v1.3.1-beta)**
 - **[Consulter le code source Android](android/README.md)**
 
 Android Auto avec direct, file des titres à venir, favoris, demandes de titres, ajout aux favoris, commandes vocales et messages de reconnexion. L’application propose aussi la reprise après perte réseau, l’économie de données pour les pochettes, la gestion des interruptions audio et un widget d’accueil. Installation hors Google Play, compatible Android 8.0 ou supérieur sur appareils 32 et 64 bits. Android Auto nécessite Android 9 ou supérieur.
@@ -145,7 +145,6 @@ La file **À venir**, les sauvegardes automatiques des favoris, le bouton Muet, 
 
 **[Consulter les notes complètes de la Bêta 1.3](https://github.com/Inmouved/Radio-IN/releases/tag/windows-v1.3.0-beta)**
 
-La Bêta 1 Android est publiée pour essai hors Google Play.
 
 ## Signaler un problème ou proposer une idée
 
