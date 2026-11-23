@@ -1,10 +1,10 @@
 # Code source Windows
 
-Ce dossier contient le code source de la **Bêta 1.4.1 Windows** de Radio IN. Ce correctif rétablit le déplacement par le haut et les marges du lecteur. La position est mémorisée par mode à la fin du déplacement.
+Ce dossier contient **Radio IN Windows 1.0**. Les quatre modes d’affichage et les six designs sont disponibles. Chaque mode mémorise sa position. Le menu de l’icône près de l’horloge permet de recentrer le lecteur.
 
-Le menu ⋯ donne accès à **Mes demandes**, à l’alerte facultative sur les demandes annoncées et à l’historique d’écoute. Le suivi rapproche les demandes acceptées de la file publique et des diffusions observées. L’historique conserve jusqu’à 1 000 passages écoutés et le suivi jusqu’à 200 demandes.
+Les paramètres regroupent l’apparence, l’écoute, les notifications, les mises à jour et les sauvegardes. L’historique personnel conserve jusqu’à 1 000 écoutes et propose un filtre pour la session en cours. Les dernières diffusions et le suivi des demandes sont consultables séparément.
 
-Le mode Pochette affiche le cœur des favoris au survol. Le mode Large donne un accès direct à **À venir**. Chaque mode mémorise sa position. Les mises à jour affichent la progression et permettent de relancer la recherche ou le téléchargement.
+Radio IN affiche **1.0**. Le tag GitHub `windows-v2.0.0` et la version de fichier `2.0.0.0` permettent aux bêtas Windows de détecter et de vérifier la mise à jour.
 
 ## Prérequis de compilation
 
@@ -17,7 +17,7 @@ Le mode Pochette affiche le cœur des favoris au survol. Le mode Large donne un 
 
 Depuis ce dossier, lancez build-lite.ps1 pour créer la version portable, build-installer.ps1 pour l’installateur, ou build-release.ps1 pour la distribution complète et ses empreintes SHA-256.
 
-Les fichiers générés ne sont pas suivis par Git. Les clés de signature, réglages personnels, journaux et données de test ne font pas partie du dépôt.
+Les fichiers de cette version sont générés dans `outputs/windows/1.0` à la racine du dépôt et sont ignorés par Git. Les clés de signature, réglages personnels, journaux et données de test ne font pas partie du dépôt.
 
 ## Structure
 

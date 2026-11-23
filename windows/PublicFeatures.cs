@@ -81,27 +81,17 @@ public partial class MainWindow
         }
         return service + " indisponible · nouvel essai automatique";
     }
-    void AddPublicOptions(ContextMenu menu)
+    void ShowStyledMessage(string title, string message, Action? confirm = null, Window? owner = null)
     {
-        var backup = new MenuItem { Header = "Sauvegarde et réglages" };
-        void Add(MenuItem parent,string text,Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); parent.Items.Add(item); }
-        Add(backup,"Exporter favoris et réglages…",ExportSettings);
-        Add(backup,"Importer une sauvegarde…",ImportSettings);
-        Add(backup,"Réinitialiser les réglages…",ConfirmResetSettings);
-        menu.Items.Add(backup);
-        var startupMenu = new MenuItem { Header = "Démarrage" };
-        var startup = new MenuItem { Header = "Lancer avec Windows", IsCheckable = true };
-        try { startup.IsChecked = StartupRegistration.Enabled; } catch(Exception ex) { LocalLog.Write("Lecture démarrage Windows", ex); }
-        startup.Click += (_, _) => {
-            try { StartupRegistration.Set(startup.IsChecked); }
-            catch(Exception ex) { startup.IsChecked = !startup.IsChecked; LocalLog.Write("Configuration démarrage Windows", ex); MessageBox.Show(this, "Impossible de modifier le démarrage Windows.", "Radio IN"); }
-        };
-        startupMenu.Items.Add(startup);
-        var hidden = new MenuItem { Header = "Avec Windows : démarrer près de l’horloge", IsCheckable = true, IsChecked = preferences.LaunchHidden };
-        hidden.Click += (_, _) => { preferences.LaunchHidden = hidden.IsChecked; SavePreferences(); }; startupMenu.Items.Add(hidden);
-        menu.Items.Add(startupMenu);
-        var updates = new MenuItem { Header = "Mises à jour" }; AddUpdateOptions(updates); menu.Items.Add(updates);
-        var about = new MenuItem { Header = "À propos — " + AppInfo.Version }; about.Click += (_, _) => ShowAbout(); menu.Items.Add(about);
+        var body = new StackPanel();
+        body.Children.Add(new TextBlock { Text = message, Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,12) });
+        var dialog = CreateInfoWindow(title, body, 440);
+        if (owner != null) dialog.Owner = owner;
+        var accept = new Button { Content = confirm == null ? "Fermer" : "Confirmer", IsDefault = true };
+        accept.Click += (_, _) => { dialog.Close(); confirm?.Invoke(); };
+        body.Children.Add(accept);
+        if (confirm != null) body.Children.Add(new Button { Content = "Annuler", IsCancel = true, Margin = new Thickness(0,6,6,0) });
+        dialog.ShowDialog();
     }
     Window CreateInfoWindow(string title, UIElement content, double width = 510)
     {
@@ -112,12 +102,14 @@ public partial class MainWindow
         header.Children.Add(new TextBlock { Text = title, Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
         DockPanel.SetDock(header, Dock.Top); body.Children.Add(header); body.Children.Add(content);
         var dialog = new Window { Title = title, Icon = Icon, Owner = this, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Background = new SolidColorBrush(Color.FromRgb(20,29,42)), Width = width, SizeToContent = SizeToContent.Height, Content = body, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        System.Windows.Automation.AutomationProperties.SetName(close, "Fermer " + title);
+        dialog.PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) { e.Handled = true; dialog.Close(); } };
         close.Click += (_, _) => dialog.Close(); header.MouseLeftButtonDown += (_, e) => DragWindow(dialog, e); AddRoundedCorners(dialog); return dialog;
     }
     void OpenLocalFolder(string path)
     {
         try { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch(Exception ex) { LocalLog.Write("Ouverture dossier local", ex); MessageBox.Show(this, "Le dossier n’a pas pu être ouvert.", "Radio IN"); }
+        catch(Exception ex) { LocalLog.Write("Ouverture dossier local", ex); ShowStyledMessage("Dossier local", "Le dossier n’a pas pu être ouvert.", owner: aboutWindow); }
     }
     void ShowAbout()
     {
@@ -125,11 +117,25 @@ public partial class MainWindow
         var body = new StackPanel();
         body.Children.Add(new Image { Source = Icon, Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0,0,0,14) });
         body.Children.Add(new TextBlock { Text = AppInfo.Version, Foreground = Brushes.White, FontSize = 22, FontWeight = FontWeights.Bold });
-        body.Children.Add(new TextBlock { Text = "Lecteur Radio IN · Windows 64 bits\n\nRecherche de mises à jour sur GitHub, instance unique, sauvegardes et options de démarrage.\n\nLes journaux restent sur ce PC : aucun envoi automatique.\n\nÉtat : " + connectionText, Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,16) });
+        body.Children.Add(new TextBlock { Text = "Lecteur Radio IN · Windows 64 bits\n\nLes journaux restent sur ce PC. Vous pouvez copier le diagnostic pour signaler un problème.\n\nÉtat : " + connectionText, Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,16) });
         var data = new Button { Content = "Ouvrir le dossier des réglages", Margin = new Thickness(0,0,0,8) }; data.Click += (_, _) => OpenLocalFolder(dataDirectory); body.Children.Add(data);
         var logs = new Button { Content = "Ouvrir le journal d’erreurs", Margin = new Thickness(0) }; logs.Click += (_, _) => OpenLocalFolder(LocalLog.DirectoryPath); body.Children.Add(logs);
+        var diagnostic = new Button { Content = "Copier le diagnostic", Margin = new Thickness(0,8,0,0) };
+        diagnostic.Click += (_, _) => {
+            try { Clipboard.SetText(DiagnosticText()); diagnostic.Content = "Diagnostic copié"; }
+            catch (System.Runtime.InteropServices.ExternalException ex) { LocalLog.Write("Copie du diagnostic", ex); diagnostic.Content = "Réessayer la copie"; }
+        };
+        body.Children.Add(diagnostic);
+        var news = new Button { Content = "Nouveautés de cette version…", Margin = new Thickness(0,8,0,0) };
+        news.Click += (_, _) => ShowReleaseNews(); body.Children.Add(news);
         aboutWindow = CreateInfoWindow("RADIO IN / À PROPOS", body); aboutWindow.Closed += (_, _) => aboutWindow = null; aboutWindow.Show();
     }
+    string DiagnosticText() =>
+        "Radio IN " + AppInfo.Version + " (" + AppInfo.WindowsVersion + ")\n" +
+        "Windows " + Environment.OSVersion.Version + " · 64 bits\n" +
+        "Mode " + modes[displayMode] + " · Design " + designs[design] + "\n" +
+        "Audio : " + (!playing ? "arrêté" : retryAt.HasValue ? "reconnexion" : audio?.State == 3 ? "en lecture" : "chargement") + "\n" +
+        "Connexion : " + connectionText;
     BackupFile CreateBackup()
     {
         SavePreferences();
@@ -171,6 +177,7 @@ public partial class MainWindow
                 if (monitor != null) { Left = settings.Left.Value; Top = settings.Top.Value; }
             }
             SyncFavoriteButtons();
+            ConfigureAutomaticUpdateTimer();
         } catch { preferences = before; throw; }
         finally { restoring = false; }
         SavePreferences(); Status.Text = "Sauvegarde importée · favoris fusionnés.";
@@ -178,20 +185,19 @@ public partial class MainWindow
     void ExportSettings()
     {
         var dialog = new SaveFileDialog { Title = "Exporter favoris et réglages", Filter = "Sauvegarde Radio IN (*.json)|*.json", FileName = "RadioIN-sauvegarde.json", DefaultExt = ".json", AddExtension = true, OverwritePrompt = true };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(settingsWindow ?? this) != true) return;
         try { File.WriteAllText(dialog.FileName, new JavaScriptSerializer { MaxJsonLength = 4 * 1024 * 1024 }.Serialize(CreateBackup())); Status.Text = "Sauvegarde exportée."; }
-        catch(Exception ex) { LocalLog.Write("Export sauvegarde", ex); MessageBox.Show(this, "Impossible d’écrire cette sauvegarde.", "Radio IN"); }
+        catch(Exception ex) { LocalLog.Write("Export sauvegarde", ex); ShowStyledMessage("Export de la sauvegarde", "Impossible d’écrire cette sauvegarde.", owner: settingsWindow); }
     }
     void ImportSettings()
     {
         var dialog = new OpenFileDialog { Title = "Importer une sauvegarde Radio IN", Filter = "Sauvegarde Radio IN (*.json)|*.json", CheckFileExists = true, Multiselect = false };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(settingsWindow ?? this) != true) return;
         try {
             if (new FileInfo(dialog.FileName).Length > 4 * 1024 * 1024) throw new FormatException("Sauvegarde trop volumineuse.");
             var imported = ValidateBackup(File.ReadAllText(dialog.FileName));
-            if (MessageBox.Show(this, "Importer ces réglages et fusionner les favoris ?\nVos favoris actuels seront conservés. Le démarrage avec Windows ne sera pas modifié.", "Radio IN — import", MessageBoxButton.OKCancel) != MessageBoxResult.OK) return;
-            ApplyBackup(imported);
-        } catch(Exception ex) { LocalLog.Write("Import sauvegarde", ex); MessageBox.Show(this, "Import impossible : " + ex.Message, "Radio IN"); }
+            ShowStyledMessage("Import de la sauvegarde", "Appliquer ces réglages et fusionner les listes de favoris ?", () => { ApplyBackup(imported); settingsWindow?.Close(); }, settingsWindow);
+        } catch(Exception ex) { LocalLog.Write("Import sauvegarde", ex); ShowStyledMessage("Import de la sauvegarde", ex.Message, owner: settingsWindow); }
     }
     async Task TestPublicFeatures()
     {

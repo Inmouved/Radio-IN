@@ -74,9 +74,19 @@ public partial class MainWindow
             Check(reloaded.History.Count == 2 && reloaded.Requests.Single().PlayedUtc.HasValue, "Sauvegarde relisible et dédoublonnée");
             Check(MatchesArchive(reloaded.History[0], "echo artiste " + now.ToLocalTime().ToString("dd/MM/yyyy")), "Recherche par titre, artiste et date");
             currentSongId = "cover-favorite"; SongTitle.Text = "Titre test";
-            ChangeMode(3); SetCoverControls(true); UpdateLayout();
+            ChangeMode(3); SetCoverControls(false);
+            Check(!CoverFavorite.IsTabStop, "Pochette : les boutons masqués sont exclus de la navigation");
+            var tab = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice,
+                PresentationSource.FromVisual(this), Environment.TickCount, System.Windows.Input.Key.Tab);
+            Shortcuts(this, tab);
+            Check(CoverFavorite.IsTabStop, "Pochette : Tab rend les commandes accessibles");
+            UpdateLayout();
             CoverFavorite.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             Check(CoverFavorite.IsVisible && (string)CoverFavorite.Content == "♥" && (string)FavoriteButton.Content == "♥", "Cœur Pochette synchronisé");
+            Check(ExecuteShortcut(System.Windows.Input.Key.F) && (string)CoverFavorite.Content == "♡", "Second appui : retrait du favori");
+            ChangeMode(1);
+            Check(ExecuteShortcut(System.Windows.Input.Key.F) && (string)FavoriteButton.Content == "♥", "Ctrl+F actif en mode Réduit");
+            ExecuteShortcut(System.Windows.Input.Key.F);
             ChangeMode(2); UpdateLayout();
             LargeUpcomingButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             Check(LargeUpcomingButton.IsVisible && extraView == "queue", "Bouton À venir en mode Large");
@@ -88,6 +98,11 @@ public partial class MainWindow
             var coverPoint = new ModePosition { X = screen.Left + 80, Y = screen.Top + 30 };
             preferences.ModePositions["0"] = compactPoint;
             preferences.ModePositions["3"] = coverPoint;
+            PlacePlayer(compactPoint);
+            RecenterPlayer();
+            var centeredScreen = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position).WorkingArea;
+            Check(GetWindowRect(new WindowInteropHelper(this).Handle, out var centered) &&
+                Math.Abs(centered.Left + centered.Right - centeredScreen.Left - centeredScreen.Right) < 3, "Recentrage sur le moniteur de la souris");
             PlacePlayer(compactPoint);
             ChangeMode(3); UpdateLayout(); ChangeMode(0); UpdateLayout();
             Check(GetWindowRect(new WindowInteropHelper(this).Handle, out var window) && window.Left == compactPoint.X && window.Top == compactPoint.Y,
@@ -165,7 +180,14 @@ public partial class MainWindow
             RecordSessionTrack("a","Titre A","Artiste A",100); RecordSessionTrack("a","Titre A","Artiste A",100);
             Check(sessionHistory.Count == 1,"Session : rafraîchissement sans doublon");
             RecordSessionTrack("a","Titre A","Artiste A",200); Check(sessionHistory.Count == 2,"Session : nouvelle diffusion du même titre conservée");
-            ShowSessionHistory(); Check(ExtraList.Items.Count == 2 && ExtraList.ItemTemplate == Items.ItemTemplate,"Session affichée avec actions favoris");
+            ShowListeningArchive(); ArchivePeriod.SelectedIndex = 1; Check(ExtraList.Items.Count == 2 && ExtraList.ItemTemplate == Items.ItemTemplate,"Session affichée avec actions favoris");
+            ExtraSearch.Text = "inexistant"; Check(ExtraList.Items.Count == 0, "Recherche appliquée à la session");
+            ExtraSearch.Clear();
+            SaveListenedTrack("earlier","Ancienne écoute","Test",900);
+            ArchivePeriod.SelectedIndex = 0;
+            Check(ExtraList.Items.OfType<Track>().Any(track => track.Id == "earlier"), "Historique complet inclut les écoutes hors session");
+            ArchivePeriod.SelectedIndex = 1;
+            Check(ExtraList.Items.OfType<Track>().All(track => track.Id != "earlier"), "Session exclut les écoutes précédentes");
             for (int i = 0; i < 510; i++) RecordSessionTrack("t" + i,"Titre " + i,"Test",i);
             Check(sessionHistory.Count == 500 && sessionHistory[0].Title == "Titre 509","Session bornée à 500 titres, plus récent en premier");
             var snapshots = new FavoritesSnapshots(Path.Combine(root,"backups"));
@@ -201,17 +223,26 @@ public partial class MainWindow
             Check(prefs.PlayerOpacity == 1 && prefs.TextScale == 1 && prefs.AnimationMode == 0,"Nouveaux réglages persistés");
             ShowReleaseNews(); Check(newsWindow != null && preferences.LastSeenVersion == AppInfo.Version,"Nouveautés affichées et version mémorisée"); newsWindow!.Close();
             Check(newsWindow == null,"Présentation des nouveautés fermable");
-            var menu = new ContextMenu(); AddRelease13Options(menu);
-            var favoritesMenu = menu.Items.OfType<MenuItem>().Single(x => (string)x.Header == "Favoris");
-            Check(favoritesMenu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "♡ Ajouter le titre aux favoris") && favoritesMenu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Mes favoris…"),"Favoris regroupés et commandes conservées");
-            Check(menu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "À venir…") && menu.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Aide"),"Commandes de lecture et aide regroupées");
-            Check(HistoryButton.Visibility == Visibility.Collapsed,"Historique retiré de la barre et accessible via le menu options");
+            ChangeMode(0);
+            Check(HistoryButton.Visibility == Visibility.Collapsed,"Historique retiré de la barre compacte");
             ShowOptions();
             var options = OptionsButton.ContextMenu!;
-            Check(options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Historique…"),"Historique présent dans le menu ⋯");
-            Check(options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Écoute et notifications") && options.Items.OfType<MenuItem>().Any(x => (string)x.Header == "Mises à jour"),"Réglages d’écoute et mises à jour accessibles dans les sous-menus");
+            var labels = options.Items.OfType<MenuItem>().Select(item => (string)item.Header).ToList();
+            Check(labels.Contains("Derniers titres diffusés…") && labels.Contains("Mon historique d’écoute…"),"Historique radio et historique personnel accessibles");
+            Check(labels.Contains("Paramètres…") && labels.Contains("Mes favoris…"),"Paramètres centralisés et favoris accessibles");
             options.IsOpen = false;
-            playing = false; retryAt = null; UpdateConnectionBadge(); Check(ConnectionBadge.Text.Contains("Arrêté"),"Indicateur connexion : arrêté");
+            ShowSettings();
+            var settings = (StackPanel)((DockPanel)settingsWindow!.Content).Children[1];
+            var groups = (ComboBox)settings.Children[0];
+            var content = (ScrollViewer)settings.Children[1];
+            for (int section = 0; section < groups.Items.Count; section++) {
+                groups.SelectedIndex = section;
+                Check(((StackPanel)content.Content).Children.Count > 0, "Paramètres : " + groups.SelectedItem);
+            }
+            settingsWindow.Close();
+            Check(DiagnosticText().Contains(AppInfo.Version) && !DiagnosticText().Contains(dataDirectory), "Diagnostic versionné sans chemin personnel");
+            Check(new Preferences().Design == 5 && new JavaScriptSerializer().Deserialize<Preferences>("{\"Design\":0}").Design == 0, "Auto par défaut et design existant conservé");
+                playing = false; retryAt = null; UpdateConnectionBadge(); Check(ConnectionBadge.Text.Contains("Arrêté"),"Indicateur connexion : arrêté");
             playing = true; retryAt = DateTime.UtcNow.AddSeconds(10); UpdateConnectionBadge(); Check(ConnectionBadge.Text.Contains("Reconnexion"),"Indicateur connexion : reconnexion");
             playing = false; retryAt = null;
             results.Add("Aucune demande musicale réelle envoyée ; profil de test isolé.");
@@ -241,7 +272,7 @@ public partial class MainWindow
             if (!muted || Volume.Value != .35 || listeningAnimated || audio.VolumePercent != 0) throw new InvalidOperationException("Muet/animation");
             ToggleMute(); await WaitForVolume(35);
             if (Math.Abs(audio.VolumePercent - 35) > 1) throw new InvalidOperationException("Volume rétabli incorrect"); results.Add("Muet réel VLC : 0 %, puis rétablissement à 35 %.");
-            ShowSessionHistory(); UpdateLayout(); SaveBetaPreview("beta13-session-live.png");
+            ShowListeningArchive(); ArchivePeriod.SelectedIndex = 1; UpdateLayout(); SaveBetaPreview("beta13-session-live.png");
             TogglePlay(this,new RoutedEventArgs());
             results.Add("Aucune demande envoyée ; API publiques consultées en lecture seule.");
         } catch(Exception ex) { results.Add("ERROR: " + ex); Environment.ExitCode = 1; }

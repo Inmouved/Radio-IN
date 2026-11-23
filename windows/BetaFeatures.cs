@@ -133,14 +133,14 @@ public partial class MainWindow
         var body = new StackPanel(); body.Children.Add(new TextBlock { Text = "Remettre les réglages par défaut ? Vos favoris seront conservés.", Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap });
         var reset = new Button { Content = "Réinitialiser les réglages", Margin = new Thickness(0,12,0,0) }; body.Children.Add(reset);
         var dialog = CreateInfoWindow("RADIO IN / RÉGLAGES", body, 420);
-        reset.Click += (_, _) => { ResetSettingsKeepingFavorites(); dialog.Close(); }; dialog.Show();
+        reset.Click += (_, _) => { ResetSettingsKeepingFavorites(); dialog.Close(); settingsWindow?.Close(); }; dialog.Show();
     }
     void ResetSettingsKeepingFavorites()
     {
         var favorites = preferences.Favorites; preferences = new Preferences { Favorites = favorites, LastSeenVersion = AppInfo.Version };
         muted = false; MuteButton.Content = CoverMute.Content = "Son"; ApplyReadingSettings();
         if (!testMode) SetGlobalMediaKeys(false);
-        SetSleep(0); Volume.Value = preferences.Volume; Pin.IsChecked = false; ApplyDesign(0); ChangeMode(0);
+        SetSleep(0); Volume.Value = preferences.Volume; Pin.IsChecked = false; ApplyDesign(preferences.Design); ChangeMode(0); ConfigureAutomaticUpdateTimer();
         Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - Width) / 2;
         Top = SystemParameters.WorkArea.Top + Math.Max(0, (SystemParameters.WorkArea.Height - ActualHeight) / 2);
         SavePreferences(); UpdateFavoritesList(); SyncFavoriteButtons(); ShowInlineNotice("Réglages réinitialisés. Vos favoris sont conservés.");
@@ -171,18 +171,11 @@ public partial class MainWindow
         UnregisterHotKey(hwnd,5401); UnregisterHotKey(hwnd,5402); preferences.MediaKeys = false;
         ShowInlineNotice("Les touches multimédias sont déjà utilisées par une autre application. Les raccourcis Ctrl+E restent disponibles."); return false;
     }
-    void AddMediaOption(ContextMenu menu)
+    void ChangeMediaKeys(bool enabled)
     {
-        AddMediaOption(menu.Items);
-    }
-    void AddMediaOption(MenuItem menu)
-    {
-        AddMediaOption(menu.Items);
-    }
-    void AddMediaOption(ItemCollection items)
-    {
-        var option = new MenuItem { Header = "Touches multimédias en arrière-plan", IsCheckable = true, IsChecked = preferences.MediaKeys };
-        option.Click += (_, _) => { preferences.MediaKeys = option.IsChecked && SetGlobalMediaKeys(true); if (!option.IsChecked) SetGlobalMediaKeys(false); option.IsChecked = preferences.MediaKeys; SavePreferences(); }; items.Add(option);
+        preferences.MediaKeys = enabled && SetGlobalMediaKeys(true);
+        if (!enabled) SetGlobalMediaKeys(false);
+        SavePreferences();
     }
     static string PlainReleaseNotes(string notes)
     {

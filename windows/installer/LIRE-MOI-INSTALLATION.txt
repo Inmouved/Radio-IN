@@ -1,8 +1,15 @@
-RADIO IN — BÊTA 1.4.1
+RADIO IN — 1.0
 Windows 10/11 64 bits ; .NET Framework 4.8 ou supérieur.
 Le moteur audio est inclus : aucune installation de VLC nécessaire.
 
 NOUVEAUTÉS
+- Paramètres regroupés par rubrique dans le menu ⋯.
+- Mon historique d’écoute propose toutes les écoutes ou la session en cours.
+  Les Derniers titres diffusés restent visibles dans l’historique de la radio.
+- Le cœur et Ctrl+F ajoutent ou retirent le titre en cours dans les quatre modes.
+- Recentrer la fenêtre depuis l’icône Radio IN près de l’horloge.
+- Dans les modes Réduit et Pochette, Tab affiche puis parcourt les commandes.
+- Un diagnostic peut être copié dans ⋯ > À propos.
 - Mes demandes : suivi local avec horaire estimé et alerte facultative.
 - Historique d’écoute conservé après fermeture et consultable par titre, artiste ou date.
 - Cœur en mode Pochette et bouton À venir en mode Large.
@@ -22,27 +29,24 @@ NOUVEAUTÉS
 - Bouton Son/Muet sur le lecteur et en mode Pochette. Le réglage du volume
   est conservé et peut être modifié pendant le muet.
 - Indicateur de connexion : arrêté, chargement, stable, muet ou reconnexion.
-- Menu ⋯ > Lisibilité, opacité et animations : opacité de 70 à 100 %, textes
-  normaux, grands ou très grands, animations normales, discrètes ou désactivées.
+- Paramètres > Apparence : opacité de 70 à 100 %, taille du texte et animations.
 - Menu ⋯ > Copier le titre et le lien : titre, artiste et lien de la radio.
-- Menu ⋯ > Ma session d'écoute : jusqu'à 500 diffusions observées pendant
-  l'écoute, avec ajout aux favoris. Cet historique est effacé à la fermeture.
 - Nouveautés présentées au premier lancement de cette version, avec fermeture.
-  Elles restent consultables dans le menu ⋯.
+  Elles restent consultables dans ⋯ > À propos.
 - Les fonctions et corrections des versions précédentes sont incluses.
 
 UTILISATION
-Le bouton À venir est visible en mode Compact. Le menu ⋯ donne accès à la
-file et à la session dans les quatre modes. Retour réaffiche le lecteur.
+À venir est accessible par un bouton en Compact et en Large, et dans le menu
+⋯ en Réduit et en Pochette. Retour réaffiche le lecteur.
 Modes Compact, Réduit, Large et Pochette ; designs Actuel, Sombre, Flamme,
 Vert, Bleu et Auto. Le bouton − réduit près de l'horloge ; × quitte et coupe le son.
 Ctrl+E : lecture/arrêt ; Ctrl+Haut/Bas : volume ; Ctrl+M : mode suivant ;
-Ctrl+D : design suivant ; Ctrl+F : ajouter aux favoris ; Ctrl+L : favoris ;
+Ctrl+D : design suivant ; Ctrl+F : ajouter ou retirer des favoris ; Ctrl+L : favoris ;
 Ctrl+H : historique ; Ctrl+R : demandes ; Ctrl+N : notifications.
 Les touches Suivant/Précédent ne changent pas les titres d'une radio en direct.
 
 INSTALLATION
-Fermer Radio IN puis lancer RadioIN-Beta-1.4.1-Setup.exe. Installation pour
+Fermer Radio IN puis lancer RadioIN-1.0-Setup.exe. Installation pour
 le compte Windows courant, sans demande de droits administrateur.
 Dossier proposé : %LOCALAPPDATA%\Programs\Radio IN
 Raccourci menu Démarrer ; raccourci Bureau facultatif. L'installation n'active
@@ -50,13 +54,13 @@ pas le lancement avec Windows ; si déjà activé, son chemin est actualisé.
 La mise à jour conserve les favoris et réglages.
 
 VERSION PORTABLE
-Extraire tout RadioIN-Beta-1.4.1-Windows.zip dans un dossier accessible en écriture,
+Extraire tout RadioIN-1.0-Windows.zip dans un dossier accessible en écriture,
 puis lancer RadioIN.exe. Conserver les DLL et plugins avec le programme.
 
 MISES À JOUR
-Menu ⋯ > Rechercher une mise à jour.
+Menu ⋯ > Paramètres > Mises à jour.
 Vérification au lancement activée par défaut et désactivable. Les vérifications
-réussies sont espacées d'au moins 6 heures ; recherche manuelle à tout moment.
+réussies sont espacées d'au moins 30 minutes ; recherche manuelle à tout moment.
 Source : https://github.com/Inmouved/Radio-IN
 Le téléchargement laisse la radio jouer. Taille, SHA-256 et version vérifiés.
 Version installée : installateur EXE privilégié ; terminer l'assistant.
@@ -71,7 +75,7 @@ Les versions sans recherche intégrée se mettent à jour manuellement.
 DONNÉES ET SAUVEGARDES
 Préférences : %LOCALAPPDATA%\RadioIN\preferences.json
 Copies de favoris : %LOCALAPPDATA%\RadioIN\favorites-backups
-Export/import disponibles dans le menu ⋯. Réinitialiser les réglages conserve
+Export et import dans ⋯ > Paramètres > Sauvegardes. Réinitialiser les réglages conserve
 les favoris. Le lancement avec Windows est une option distincte.
 Journaux locaux : %LOCALAPPDATA%\RadioIN\logs\RadioIN.log
 Aucun envoi automatique. Menu ⋯ > À propos ouvre les dossiers utiles.

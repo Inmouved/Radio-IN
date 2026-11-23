@@ -1,5 +1,5 @@
 ﻿; Build with Inno Setup 6.7.4 or later. Keep AppId for future updates.
-#define ReleaseDir "..\..\RadioIN-Beta-1.4.1"
+#define ReleaseDir "..\..\outputs\windows\1.0\RadioIN-1.0"
 #ifdef InstallerVerification
   #define RunKey "Software\RadioIN\InstallerVerification\Run"
 #else
@@ -13,16 +13,16 @@ AppId={{E7FBC8AB-8428-4C3A-ACAE-982835D14882}
 AppId={{1A790AB8-CA10-43DA-A9E8-059608B4D531}
 #endif
 AppName=Radio IN
-AppVersion=Bêta 1.4.1
-AppVerName=Radio IN — Bêta 1.4.1
+AppVersion=1.0
+AppVerName=Radio IN — 1.0
 AppPublisher=Radio IN
 AppPublisherURL=https://radio-in.duckdns.org/public/radio_in
 AppSupportURL=https://radio-in.duckdns.org/public/radio_in
-VersionInfoVersion=1.4.1.0
+VersionInfoVersion=2.0.0.0
 VersionInfoProductName=Radio IN
-VersionInfoProductVersion=1.4.1.0
-VersionInfoProductTextVersion=1.4.1-beta
-VersionInfoDescription=Installation de Radio IN — Bêta 1.4.1
+VersionInfoProductVersion=2.0.0.0
+VersionInfoProductTextVersion=1.0.0
+VersionInfoDescription=Installation de Radio IN — 1.0
 DefaultDirName={localappdata}\Programs\Radio IN
 #ifdef InstallerVerification
 DefaultGroupName=Radio IN Verification Beta 1.3
@@ -36,7 +36,7 @@ MinVersion=10.0
 SetupMutex=RadioIN.Public.Setup
 CloseApplications=yes
 RestartApplications=no
-UninstallDisplayName=Radio IN — Bêta 1.4.1
+UninstallDisplayName=Radio IN — 1.0
 UninstallDisplayIcon={app}\RadioIN.exe
 Uninstallable=yes
 SetupIconFile=..\assets\app.ico
@@ -45,8 +45,8 @@ WizardStyle=modern dark includetitlebar
 DisableProgramGroupPage=yes
 DisableDirPage=no
 DisableWelcomePage=yes
-OutputDir=..\..
-OutputBaseFilename=RadioIN-Beta-1.4.1-Setup
+OutputDir=..\..\outputs\windows\1.0
+OutputBaseFilename=RadioIN-1.0-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 UsePreviousTasks=yes

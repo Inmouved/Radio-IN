@@ -199,20 +199,12 @@ public partial class MainWindow
         }
         automaticUpdateTimer.Start();
     }
-    void AddUpdateOptions(ContextMenu menu)
+    async Task SetAutomaticUpdates(bool enabled)
     {
-        AddUpdateOptions(menu.Items);
-    }
-    void AddUpdateOptions(MenuItem menu)
-    {
-        AddUpdateOptions(menu.Items);
-    }
-    void AddUpdateOptions(ItemCollection items)
-    {
-        var check = new MenuItem { Header = "Rechercher une mise à jour…" };
-        check.Click += async (_, _) => await CheckUpdatesAsync(true); items.Add(check);
-        var auto = new MenuItem { Header = "Vérifier au démarrage et toutes les 30 minutes", IsCheckable = true, IsChecked = preferences.CheckUpdatesOnStartup };
-        auto.Click += async (_, _) => { preferences.CheckUpdatesOnStartup = auto.IsChecked; SavePreferences(); ConfigureAutomaticUpdateTimer(); if (auto.IsChecked) await CheckUpdatesAsync(false); }; items.Add(auto);
+        preferences.CheckUpdatesOnStartup = enabled;
+        SavePreferences();
+        ConfigureAutomaticUpdateTimer();
+        if (enabled) await CheckUpdatesAsync(false);
     }
     void ShowUpdateWindow()
     {

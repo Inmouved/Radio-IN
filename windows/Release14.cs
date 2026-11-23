@@ -35,7 +35,6 @@ public partial class MainWindow
     ListeningData listeningData = new();
     readonly JavaScriptSerializer listeningSerializer = new() { MaxJsonLength = 8 * 1024 * 1024 };
     string listeningPath => Path.Combine(dataDirectory, "listening.json");
-    TextBox? historyFilter;
     bool nativePositionReady, positioningMode, placementQueued, windowMoveInProgress;
     const int EnterSizeMove = 0x0231, ExitSizeMove = 0x0232;
     const uint KeepWindowSizeAndOrder = 0x0015;
@@ -44,8 +43,8 @@ public partial class MainWindow
     {
         CoverFavorite.Click += (_, _) => AddFavorite();
         LargeUpcomingButton.Click += (_, _) => ShowUpcoming();
-        historyFilter = ExtraSearch;
-        historyFilter.TextChanged += (_, _) => { if (extraView == "archive") RenderListeningArchive(); };
+        ExtraSearch.TextChanged += (_, _) => { if (extraView == "archive") RenderListeningArchive(); };
+        ArchivePeriod.SelectionChanged += (_, _) => { if (extraView == "archive") RenderListeningArchive(); };
         if (!testMode) {
             foreach (string path in new[] { listeningPath, listeningPath + ".bak" }) {
                 if (!File.Exists(path)) continue;
@@ -83,13 +82,12 @@ public partial class MainWindow
         listeningData.History.Insert(0, new ListeningEntry { Id = id, Title = title, Artist = artist, PlayedUtc = timestamp });
         if (listeningData.History.Count > 1000) listeningData.History.RemoveAt(1000);
         SaveListeningData();
-        if (extraView == "archive") RenderListeningArchive();
     }
     void ShowListeningArchive()
     {
         OpenExtraPanel("archive");
         ExtraTitle.Text = "Historique d’écoute";
-        ExtraSearch.Visibility = Visibility.Visible;
+        ExtraSearch.Visibility = ArchivePeriod.Visibility = Visibility.Visible;
         RefreshQueue.Visibility = Visibility.Collapsed;
         ExtraList.ItemTemplate = Items.ItemTemplate;
         RenderListeningArchive();
@@ -103,11 +101,14 @@ public partial class MainWindow
     }
     void RenderListeningArchive()
     {
-        var rows = listeningData.History.Where(x => MatchesArchive(x, historyFilter?.Text ?? "")).Select(x =>
+        bool session = ArchivePeriod.SelectedIndex == 1;
+        var rows = (session ? sessionHistory : listeningData.History).Where(x => MatchesArchive(x, ExtraSearch.Text)).Select(x =>
             new Track(x.Title, x.PlayedUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") + " · " + x.Artist, "")
             { Id = x.Id, ArtistName = x.Artist }).ToList();
         ReplaceTracks(ExtraList, rows);
-        ExtraStatus.Text = rows.Count == 0 ? "Aucun titre trouvé dans l’historique d’écoute." : rows.Count + " titres · jusqu’à 1 000 écoutes conservées sur ce PC.";
+        ExtraStatus.Text = rows.Count == 0 ? "Aucun titre trouvé pour cette période." :
+            rows.Count + (rows.Count == 1 ? " titre" : " titres") +
+            (session ? " · depuis le lancement du lecteur." : " · jusqu’à 1 000 écoutes conservées sur ce PC.");
     }
     void RecordAcceptedRequest(Track track)
     {
@@ -168,19 +169,25 @@ public partial class MainWindow
     }
     void RenderMyRequests()
     {
+        var now = DateTime.UtcNow;
         ReplaceTracks(ExtraList, listeningData.Requests.Select(x => new Track(x.Title,
             x.Title + " — " + x.Artist + "\n" + (x.PlayedUtc.HasValue
                 ? "Titre diffusé à " + x.PlayedUtc.Value.ToLocalTime().ToString("dd/MM HH:mm")
-                : x.EstimatedUtc > DateTime.UtcNow && upcoming != null && !upcoming.Stale
-                    ? "Annoncé vers " + x.EstimatedUtc.Value.ToLocalTime().ToString("dd/MM HH:mm") + " (estimé)"
-                    : DateTime.UtcNow - x.AcceptedUtc >= TimeSpan.FromDays(1) ? "Diffusion non confirmée" : "Acceptée · en attente")
+                : x.EstimatedUtc > now && upcoming != null && !upcoming.Stale && now - upcoming.UpdatedUtc <= TimeSpan.FromSeconds(90)
+                    ? "Passage prévu vers " + x.EstimatedUtc.Value.ToLocalTime().ToString("dd/MM HH:mm") + " (estimé)"
+                    : now - x.AcceptedUtc >= TimeSpan.FromDays(1) ? "Diffusion non confirmée" : "Acceptée · horaire en attente")
             + " · demandée le " + x.AcceptedUtc.ToLocalTime().ToString("dd/MM HH:mm"), "")).ToList());
         ExtraStatus.Text = listeningData.Requests.Count == 0 ? "Les demandes acceptées apparaîtront ici." :
-            "Les passages sont repérés par titre à partir de la file publique et de l’historique de la radio.";
+            "Les horaires annoncés peuvent changer. Le suivi utilise la file et l’historique de Radio IN.";
     }
     void SyncFavoriteButtons()
     {
-        FavoriteButton.Content = CoverFavorite.Content = preferences.Favorites.Any(x => x.Id == currentSongId) ? "♥" : "♡";
+        bool saved = currentSongId.Length > 0 && preferences.Favorites.Any(x => x.Id == currentSongId);
+        string label = saved ? "Retirer le titre des favoris" : "Ajouter le titre aux favoris";
+        FavoriteButton.Content = CoverFavorite.Content = saved ? "♥" : "♡";
+        FavoriteButton.ToolTip = CoverFavorite.ToolTip = label + " (Ctrl+F)";
+        System.Windows.Automation.AutomationProperties.SetName(FavoriteButton, label);
+        System.Windows.Automation.AutomationProperties.SetName(CoverFavorite, label);
     }
 
     public sealed class ModePosition
@@ -198,6 +205,19 @@ public partial class MainWindow
         var handle = new WindowInteropHelper(this).Handle;
         if (handle != IntPtr.Zero && GetWindowRect(handle, out var rect))
             preferences.ModePositions[displayMode.ToString(CultureInfo.InvariantCulture)] = new ModePosition { X = rect.Left, Y = rect.Top };
+    }
+    void RecenterPlayer()
+    {
+        RestoreWindow();
+        var handle = new WindowInteropHelper(this).Handle;
+        var area = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position).WorkingArea;
+        PlacePlayer(new ModePosition { X = area.Left, Y = area.Top });
+        if (!GetWindowRect(handle, out var rect)) return;
+        PlacePlayer(new ModePosition {
+            X = area.Left + Math.Max(0, (area.Width - (rect.Right - rect.Left)) / 2),
+            Y = area.Top + Math.Max(0, (area.Height - (rect.Bottom - rect.Top)) / 2)
+        });
+        SavePreferences();
     }
     void ConstrainPlayer() => PlacePlayer(null);
     IntPtr TrackWindowMove(IntPtr handle, int message, IntPtr wParam, IntPtr lParam, ref bool handled)

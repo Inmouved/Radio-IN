@@ -157,46 +157,98 @@ public partial class MainWindow
         if (preferences.AnimationMode == 2) { TransitionArtwork(Art.Source); ApplyDesign(design); SetCoverControls(CoverHud.IsHitTestVisible); }
         if (ExtraPanel.IsVisible) Dispatcher.BeginInvoke(new Action(FitExtraPanel));
     }
-    void ShowReadingSettings()
+    Window? settingsWindow;
+    void ShowSettings()
     {
+        if (settingsWindow != null) { settingsWindow.Activate(); return; }
         var body = new StackPanel();
-        body.Children.Add(new TextBlock { Text = "Opacité du lecteur · 70 à 100 %", Foreground = Brushes.White });
-        var opacity = new Slider { Minimum = .7, Maximum = 1, Value = preferences.PlayerOpacity, Margin = new Thickness(0,10,0,18), ToolTip = "Opacité du lecteur" }; body.Children.Add(opacity);
-        body.Children.Add(new TextBlock { Text = "Taille des titres et des listes", Foreground = Brushes.White });
-        var size = new ComboBox { ItemsSource = new[] { "Normale · 100 %", "Grande · 110 %", "Très grande · 125 %" }, SelectedIndex = preferences.TextScale >= 1.2 ? 2 : preferences.TextScale > 1 ? 1 : 0, Margin = new Thickness(0,8,0,18) }; body.Children.Add(size);
-        body.Children.Add(new TextBlock { Text = "Animations", Foreground = Brushes.White });
-        var motion = new ComboBox { ItemsSource = new[] { "Normales", "Discrètes", "Désactivées" }, SelectedIndex = preferences.AnimationMode, Margin = new Thickness(0,8,0,18) }; body.Children.Add(motion);
-        var apply = new Button { Content = "Appliquer", Margin = new Thickness(0) }; body.Children.Add(apply);
-        var dialog = CreateInfoWindow("RADIO IN / AFFICHAGE",body,420);
-        apply.Click += (_, _) => { preferences.PlayerOpacity = opacity.Value; preferences.TextScale = new[] { 1d,1.1,1.25 }[size.SelectedIndex]; preferences.AnimationMode = motion.SelectedIndex; ApplyReadingSettings(); SavePreferences(); dialog.Close(); }; dialog.Show();
+        var groups = new ComboBox {
+            ItemsSource = new[] { "Apparence", "Écoute", "Notifications", "Mises à jour", "Sauvegardes" },
+            SelectedIndex = 0, Margin = new Thickness(0,0,0,16)
+        };
+        System.Windows.Automation.AutomationProperties.SetName(groups, "Rubrique des paramètres");
+        body.Children.Add(groups);
+        var scroll = new ScrollViewer { MaxHeight = 280, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        body.Children.Add(scroll);
+        var feedback = new TextBlock { Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,8,0,0) };
+        body.Children.Add(feedback);
+        var sections = Enumerable.Range(0, 5).Select(_ => new StackPanel()).ToArray();
+        void Label(int group, string text) => sections[group].Children.Add(new TextBlock { Text = text, Foreground = Brushes.White });
+        void Choose(string label, string[] choices, int selected, Action<int> change)
+        {
+            Label(0, label);
+            var control = new ComboBox { ItemsSource = choices, SelectedIndex = selected, Margin = new Thickness(0,5,0,12) };
+            System.Windows.Automation.AutomationProperties.SetName(control, label);
+            control.SelectionChanged += (_, _) => { if (control.SelectedIndex >= 0) change(control.SelectedIndex); };
+            sections[0].Children.Add(control);
+        }
+        void Option(int group, string label, bool value, Action<CheckBox> change)
+        {
+            var control = new CheckBox { Content = label, IsChecked = value, Foreground = Brushes.White, Margin = new Thickness(0,0,0,12) };
+            control.Click += (_, _) => change(control);
+            sections[group].Children.Add(control);
+        }
+        void Command(int group, string label, Action action)
+        {
+            var control = new Button { Content = label, Margin = new Thickness(0,0,0,6) };
+            control.Click += (_, _) => action();
+            sections[group].Children.Add(control);
+        }
+        Choose("Design", designs, design, ApplyDesign);
+        Choose("Affichage", modes, displayMode, ChangeMode);
+        Choose("Taille du texte", new[] { "100 %", "110 %", "125 %" }, preferences.TextScale >= 1.2 ? 2 : preferences.TextScale > 1 ? 1 : 0,
+            value => { preferences.TextScale = new[] { 1d,1.1,1.25 }[value]; ApplyReadingSettings(); SavePreferences(); });
+        Choose("Animations", new[] { "Normales", "Discrètes", "Désactivées" }, preferences.AnimationMode,
+            value => { preferences.AnimationMode = value; ApplyReadingSettings(); SavePreferences(); });
+        Label(0, "Opacité du lecteur · 70 à 100 %");
+        var opacity = new Slider { Minimum = .7, Maximum = 1, Value = preferences.PlayerOpacity, ToolTip = "Opacité du lecteur" };
+        System.Windows.Automation.AutomationProperties.SetName(opacity, "Opacité du lecteur");
+        opacity.ValueChanged += (_, _) => { preferences.PlayerOpacity = opacity.Value; ApplyNativeOpacity(); SavePreferences(); };
+        sections[0].Children.Add(opacity);
+        Option(0, "Toujours visible", preferences.Pin, box => Pin.IsChecked = box.IsChecked);
+        bool launchWithWindows = false;
+        try { launchWithWindows = !testMode && StartupRegistration.Enabled; }
+        catch (Exception ex) { LocalLog.Write("Lecture démarrage Windows", ex); }
+        Option(1, "Lancer avec Windows", launchWithWindows, box => {
+            try { StartupRegistration.Set(box.IsChecked == true); feedback.Text = ""; }
+            catch (Exception ex) {
+                box.IsChecked = box.IsChecked != true;
+                LocalLog.Write("Configuration démarrage Windows", ex);
+                feedback.Text = "Impossible de modifier le démarrage Windows.";
+            }
+        });
+        Option(1, "Au démarrage de Windows, réduire près de l’horloge", preferences.LaunchHidden, box => { preferences.LaunchHidden = box.IsChecked == true; SavePreferences(); });
+        Option(1, "Écouter automatiquement au lancement", preferences.AutoPlay, box => { preferences.AutoPlay = box.IsChecked == true; SavePreferences(); });
+        Option(1, "Touches multimédias en arrière-plan", preferences.MediaKeys, box => {
+            ChangeMediaKeys(box.IsChecked == true); box.IsChecked = preferences.MediaKeys;
+            feedback.Text = preferences.MediaKeys ? "" : "Les raccourcis du lecteur restent disponibles.";
+        });
+        Command(1, "Raccourcis clavier…", ShowShortcuts);
+        Option(2, "M’avertir au changement de titre", preferences.Notifications, box => { preferences.Notifications = box.IsChecked == true; SavePreferences(); });
+        Option(2, "M’avertir quand une demande est annoncée", preferences.RequestAlerts, box => { preferences.RequestAlerts = box.IsChecked == true; SavePreferences(); UpdateRequestTracking(); });
+        Option(3, "Vérifier au démarrage et toutes les 30 minutes", preferences.CheckUpdatesOnStartup, async box => await SetAutomaticUpdates(box.IsChecked == true));
+        Command(3, "Rechercher une mise à jour…", () => _ = CheckUpdatesAsync(true));
+        Command(4, "Exporter les favoris et réglages…", ExportSettings);
+        Command(4, "Importer une sauvegarde…", ImportSettings);
+        Command(4, "Restaurer des favoris…", ShowRestoreFavorites);
+        Command(4, "Réinitialiser les réglages…", ConfirmResetSettings);
+        scroll.Content = sections[0];
+        groups.SelectionChanged += (_, _) => {
+            if (groups.SelectedIndex < 0) return;
+            feedback.Text = ""; scroll.Content = sections[groups.SelectedIndex]; scroll.ScrollToTop();
+        };
+        settingsWindow = CreateInfoWindow("RADIO IN / PARAMÈTRES", body, 460);
+        settingsWindow.Closed += (_, _) => settingsWindow = null;
+        settingsWindow.Show();
     }
-    void AddRelease13Options(ContextMenu menu)
-    {
-        void Add(ItemsControl parent,string title,Action action) { var item = new MenuItem { Header = title }; item.Click += (_, _) => action(); parent.Items.Add(item); }
-        var favorites = new MenuItem { Header = "Favoris" };
-        Add(favorites,"♡ Ajouter le titre aux favoris",AddFavorite); Add(favorites,"Mes favoris…",ShowFavorites); Add(favorites,"Restaurer des favoris…",ShowRestoreFavorites);
-        menu.Items.Add(favorites);
-        Add(menu,"À venir…",ShowUpcoming); Add(menu,"Ma session d’écoute…",ShowSessionHistory); Add(menu,"Copier le titre et le lien",CopyCurrentTrack);
-        Add(menu,"Historique d’écoute…",ShowListeningArchive);
-        var requests = new MenuItem { Header = "Demandes" };
-        Add(requests, "Mes demandes…", ShowMyRequests);
-        var requestAlerts = new MenuItem { Header = "M’avertir quand une demande est annoncée", IsCheckable = true, IsChecked = preferences.RequestAlerts };
-        requestAlerts.Click += (_, _) => { preferences.RequestAlerts = requestAlerts.IsChecked; SavePreferences(); UpdateRequestTracking(); };
-        requests.Items.Add(requestAlerts); menu.Items.Add(requests);
-        var display = new MenuItem { Header = "Affichage" };
-        Add(display,"Lisibilité, opacité et animations…",ShowReadingSettings);
-        menu.Items.Add(display);
-        var help = new MenuItem { Header = "Aide" };
-        Add(help,"Raccourcis clavier…",() => MessageBox.Show(this,"Ctrl+E : lecture / arrêt\nCtrl+↑ / ↓ : volume\nCtrl+M : mode suivant\nCtrl+D : design suivant\nCtrl+F : ajouter le titre aux favoris\nCtrl+L : liste des favoris\nCtrl+H : historique\nCtrl+R : demandes de titres\nCtrl+N : notifications\nÉchap : fermer le panneau (Compact)","Radio IN — raccourcis"));
-        Add(help,"Nouveautés de la " + AppInfo.Version + "…",ShowReleaseNews);
-        menu.Items.Add(help);
-    }
+    void ShowShortcuts() => ShowStyledMessage("Raccourcis clavier",
+        "Ctrl+E  Lecture / arrêt\nCtrl+↑ / ↓  Volume\nCtrl+M  Mode suivant\nCtrl+D  Design suivant\nCtrl+F  Ajouter ou retirer des favoris\nCtrl+L  Mes favoris\nCtrl+H  Derniers titres diffusés\nCtrl+R  Demander un titre\nCtrl+N  Notifications\nTab  Afficher et parcourir les commandes masquées\nÉchap  Fermer le panneau ouvert");
     void ShowReleaseNews()
     {
         if (newsWindow != null) { newsWindow.Activate(); return; }
         preferences.LastSeenVersion = AppInfo.Version; SavePreferences();
         var body = new StackPanel(); body.Children.Add(new TextBlock { Text = AppInfo.Version, Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,12) });
-        body.Children.Add(new TextBlock { Text = "Le déplacement depuis le haut et les marges du lecteur est rétabli. Chaque mode mémorise sa position lorsque vous relâchez la souris.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(new TextBlock { Text = "Les réglages sont regroupés dans Paramètres. Le cœur permet d’ajouter ou de retirer le titre en cours. Mon historique d’écoute regroupe toutes vos écoutes et la session en cours.", Foreground = Brushes.LightSteelBlue, TextWrapping = TextWrapping.Wrap });
         var close = new Button { Content = "C’est parti", Margin = new Thickness(0,16,0,0) }; body.Children.Add(close);
         newsWindow = CreateInfoWindow("RADIO IN / NOUVEAUTÉS",body,490); close.Click += (_, _) => newsWindow?.Close(); newsWindow.Closed += (_, _) => newsWindow = null; newsWindow.Show();
     }

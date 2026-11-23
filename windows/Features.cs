@@ -115,7 +115,7 @@ public partial class MainWindow
     }
     public sealed class Preferences
     {
-        public int Design { get; set; }
+        public int Design { get; set; } = 5;
         public int Mode { get; set; }
         public double Volume { get; set; } = 0.75;
         public double? Left { get; set; }
@@ -177,7 +177,6 @@ public partial class MainWindow
         OptionsButton.Click += (_, _) => ShowOptions();
         FavoriteButton.Click += (_, _) => AddFavorite();
         PreviewKeyDown += Shortcuts;
-        PreviewKeyDown += (_, e) => { if (e.Key == Key.Tab) keyboardHover = true; };
         PreviewMouseDown += (_, _) => keyboardHover = false;
         MouseEnter += (_, _) => { hoverTimer.Stop(); SetHoverControls(true); };
         MouseLeave += (_, _) => { hoverTimer.Stop(); hoverTimer.Start(); };
@@ -272,6 +271,7 @@ public partial class MainWindow
         tray = new Forms.NotifyIcon { Icon = applicationIcon ?? System.Drawing.SystemIcons.Application, Text = "Radio IN — " + AppInfo.Version, Visible = true };
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Afficher Radio IN", null, (_, _) => Dispatcher.Invoke(RestoreWindow));
+        menu.Items.Add("Recentrer la fenêtre", null, (_, _) => Dispatcher.Invoke(RecenterPlayer));
         menu.Items.Add("Lecture / Arrêt", null, (_, _) => Dispatcher.Invoke(() => TogglePlay(this, new RoutedEventArgs())));
         menu.Items.Add("Favoris", null, (_, _) => Dispatcher.Invoke(() => { RestoreWindow(); ShowFavorites(); }));
         menu.Items.Add("Quitter", null, (_, _) => Dispatcher.Invoke(Close));
@@ -283,18 +283,16 @@ public partial class MainWindow
     {
         var menu = new ContextMenu();
         void Add(string text, Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); menu.Items.Add(item); }
-        Add("Historique…", () => ShowHistory(this, new RoutedEventArgs()));
-        AddRelease13Options(menu);
-        var listen = new MenuItem { Header = "Écoute et notifications" };
-        var notify = new MenuItem { Header = "Notifications de changement de titre", IsCheckable = true, IsChecked = preferences.Notifications };
-        notify.Click += (_, _) => { preferences.Notifications = notify.IsChecked; SavePreferences(); }; listen.Items.Add(notify);
-        var pin = new MenuItem { Header = "Toujours visible", IsCheckable = true, IsChecked = Topmost };
-        pin.Click += (_, _) => { Pin.IsChecked = pin.IsChecked; SavePreferences(); }; listen.Items.Add(pin);
-        AddMediaOption(listen);
-        listen.Items.Add(new Separator());
-        var autoplay = new MenuItem { Header = "Écouter automatiquement au lancement", IsCheckable = true, IsChecked = preferences.AutoPlay };
-        autoplay.Click += (_, _) => { preferences.AutoPlay = autoplay.IsChecked; SavePreferences(); }; listen.Items.Add(autoplay);
-        menu.Items.Add(listen);
+        if (displayMode is 0 or 1 or 3)
+            Add("Derniers titres diffusés…", () => ExecuteShortcut(Key.H));
+        if (displayMode is 1 or 3)
+            Add("Demander un titre…", () => ExecuteShortcut(Key.R));
+        if (displayMode is 1 or 3)
+            Add("À venir…", ShowUpcoming);
+        Add("Mon historique d’écoute…", ShowListeningArchive);
+        Add("Mes favoris…", ShowFavorites);
+        Add("Mes demandes…", ShowMyRequests);
+        Add("Copier le titre et le lien", CopyCurrentTrack);
         var sleep = new MenuItem { Header = sleepUntil.HasValue ? "Minuterie : " + Math.Ceiling((sleepUntil.Value - DateTime.UtcNow).TotalMinutes) + " min restantes" : "Minuterie de sommeil" };
         foreach (int minutes in new[] { 15, 30, 60, 0 }) {
             var item = new MenuItem { Header = minutes == 0 ? "Désactiver" : minutes + " minutes" };
@@ -302,7 +300,9 @@ public partial class MainWindow
         }
         var customSleep = new MenuItem { Header = "Durée et fondu personnalisés…" }; customSleep.Click += (_, _) => ShowCustomSleep(); sleep.Items.Add(customSleep);
         menu.Items.Add(sleep);
-        AddPublicOptions(menu);
+        Add("Paramètres…", ShowSettings);
+        Add("À propos…", ShowAbout);
+        menu.Items.Add(new Separator());
         Add("Quitter", Close);
         OptionsButton.ContextMenu = menu; menu.PlacementTarget = OptionsButton; menu.IsOpen = true;
     }
@@ -314,7 +314,12 @@ public partial class MainWindow
     }
     void Shortcuts(object sender, KeyEventArgs e)
     {
-        if (Keyboard.Modifiers != ModifierKeys.Control) { if (e.Key == Key.Escape && displayMode == 0) CloseDrawer(this, e); return; }
+        if (Keyboard.Modifiers != ModifierKeys.Control) {
+            if (e.Key == Key.Escape && ExtraPanel.IsVisible) { CloseExtraPanel(); e.Handled = true; }
+            else if (e.Key == Key.Escape && displayMode == 0) CloseDrawer(this, e);
+            else if (e.Key == Key.Tab && displayMode is 1 or 3) { keyboardHover = true; SetHoverControls(true); }
+            return;
+        }
         e.Handled = ExecuteShortcut(e.Key);
     }
     bool ExecuteShortcut(Key key)
@@ -336,9 +341,13 @@ public partial class MainWindow
     }
     void AddFavorite()
     {
-        if (currentSongId.Length == 0) { Status.Text = "Attendez le chargement du titre en cours."; return; }
-        if (!preferences.Favorites.Any(f => f.Id == currentSongId)) preferences.Favorites.Add(new Favorite { Id = currentSongId, Title = SongTitle.Text, Artist = Artist.Text });
-        SyncFavoriteButtons(); Status.Text = "Titre enregistré dans vos favoris."; SavePreferences(); UpdateFavoritesList();
+        if (string.IsNullOrWhiteSpace(currentSongId)) { ShowInlineNotice("Attendez le chargement du titre en cours."); return; }
+        bool added = preferences.Favorites.RemoveAll(f => f.Id == currentSongId) == 0;
+        if (added) preferences.Favorites.Add(new Favorite { Id = currentSongId, Title = SongTitle.Text, Artist = Artist.Text });
+        SyncFavoriteButtons();
+        SavePreferences();
+        UpdateFavoritesList();
+        ShowInlineNotice(added ? "Titre ajouté à vos favoris." : "Titre retiré de vos favoris.");
     }
     void UpdateFavoritesList() { if (favoritesList != null) { string? id = (favoritesList.SelectedItem as Favorite)?.Id; var rows = FilterFavorites(preferences.Favorites, favoriteSearch?.Text ?? "", favoriteSort?.SelectedIndex ?? 0); favoritesList.ItemsSource = rows; favoritesList.SelectedItem = rows.FirstOrDefault(f => f.Id == id); } }
     void ShowFavorites()
@@ -456,7 +465,7 @@ public partial class MainWindow
             bool accepted = false, recognized = false; string message = "";
             try { using var doc = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync()); message = S(doc.RootElement, "message"); if (doc.RootElement.TryGetProperty("success", out var ok)) { recognized = true; accepted = response.IsSuccessStatusCode && ok.GetBoolean(); } } catch { message = "Réponse du serveur non reconnue."; }
             requestAllowedAt = response.Headers.RetryAfter == null ? (DateTime?)null : response.Headers.RetryAfter.Delta.HasValue ? DateTime.UtcNow.Add(response.Headers.RetryAfter.Delta.Value) : response.Headers.RetryAfter.Date?.UtcDateTime;
-            if (!closed) RequestFeedback.Text = (accepted ? "✓ Demande acceptée. " : response.IsSuccessStatusCode && !recognized ? "Confirmation non reconnue. " : "Demande refusée. ") + message + (requestAllowedAt.HasValue ? " Prochaine demande : " + requestAllowedAt.Value.ToLocalTime().ToString("HH:mm:ss") : "");
+            if (!closed) RequestFeedback.Text = (accepted ? "✓ Demande acceptée. " : response.IsSuccessStatusCode && !recognized ? "Confirmation non reconnue. " : "Demande refusée. ") + message + (requestAllowedAt.HasValue ? " Vous pourrez demander un autre titre à partir de " + requestAllowedAt.Value.ToLocalTime().ToString("HH:mm:ss") : "");
             if (accepted && track != null) RecordAcceptedRequest(track);
             if (!closed) { ShowInlineNotice(RequestFeedback.Text); TickBetaFeatures(); }
     }
@@ -466,7 +475,7 @@ public partial class MainWindow
         try {
             await Refresh(); ApplyDesign(5); await Task.Delay(2000);
             results.Add($"Automatic colour={autoColor}; artwork={Art.Source != null}");
-            AddFavorite(); AddFavorite(); results.Add("Favorite count=" + preferences.Favorites.Count);
+            AddFavorite(); results.Add("Favorite count=" + preferences.Favorites.Count);
             Volume.Value = .35; SavePreferences(); var loaded = new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(preferencesPath)); results.Add($"Saved volume={loaded.Volume}; design={loaded.Design}; favorites={loaded.Favorites.Count}");
             ChangeMode(1); SetHoverControls(true); UpdateLayout(); results.Add("Reduced hover controls=" + AudioControls.Visibility); SetHoverControls(false); UpdateLayout(); results.Add("Reduced idle controls=" + AudioControls.Visibility);
             TogglePlay(this, new RoutedEventArgs()); await Task.Delay(10000); results.Add($"Playback state={audio?.State}; time={audio?.Time}");

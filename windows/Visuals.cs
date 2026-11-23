@@ -61,7 +61,6 @@ public partial class MainWindow
         CoverVolume.SetBinding(Slider.ValueProperty, new Binding("Value") { Source = Volume, Mode = BindingMode.TwoWay });
         CoverPlay.Click += TogglePlay;
         CoverStage.SizeChanged += (_, _) => { if (CoverStage.ActualWidth > 0) CoverStage.Height = CoverStage.ActualWidth; };
-        CoverHud.LostKeyboardFocus += (_, _) => { if (!IsMouseOver) SetCoverControls(false); };
         IsVisibleChanged += (_, _) => UpdateListeningAnimation();
         Closing += (_, _) => UpdateListeningAnimation(false);
         if (Environment.GetCommandLineArgs().Contains("--beta-test")) Loaded += async (_, _) => await TestBeta();
@@ -105,6 +104,7 @@ public partial class MainWindow
     void SetCoverControls(bool visible)
     {
         CoverHud.IsHitTestVisible = visible;
+        CoverPlay.IsTabStop = CoverMute.IsTabStop = CoverFavorite.IsTabStop = CoverVolume.IsTabStop = visible;
         if (preferences.AnimationMode == 2) { CoverHud.BeginAnimation(UIElement.OpacityProperty,null); CoverHud.Opacity = visible ? 1 : 0; return; }
         var fade = new DoubleAnimation(visible ? 1 : 0, TimeSpan.FromMilliseconds(200));
         fade.Completed += (_, _) => UpdateListeningAnimation(); CoverHud.BeginAnimation(UIElement.OpacityProperty, fade);

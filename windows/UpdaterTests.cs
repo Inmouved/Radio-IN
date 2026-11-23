@@ -49,7 +49,7 @@ public partial class MainWindow
             Check(!UpdateClient.ValidAssetUrl(UpdateClient.Repository + "/releases/download/windows-v1.2.0-beta/RadioIN-Android.apk", "windows-v1.2.0-beta"), "APK et fichiers non installateurs refusés");
             Check(!UpdateClient.ValidRedirect(new Uri("http://release-assets.githubusercontent.com/file")) && !UpdateClient.ValidRedirect(new Uri("https://example.org/file")), "Redirections HTTP et externes refusées");
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.1.0-beta"), Release("windows-v1.9.0-beta"), Release("windows-v1.10.0-beta"), Release("android-v99.0.0-beta"))) }))) {
-                var latest = await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None);
+                var latest = await client.FindAsync(new Version(1,1,0,0), CancellationToken.None);
                 Check(latest?.Version == new Version(1,10,0,0), "Plus haute version Windows bêta sélectionnée");
             }
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.3.1-beta"),Release("windows-v1.3.2-beta"))) }))) {
@@ -59,11 +59,19 @@ public partial class MainWindow
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(Json(Release("windows-v1.3.2-beta"), Release("windows-v1.4.0-beta"), Release("windows-v1.4.1-beta")))
             }))) {
-                Check((await client.FindAsync(new Version(1,3,2,0), CancellationToken.None))?.Version == AppInfo.WindowsVersion,
+                Check((await client.FindAsync(new Version(1,3,2,0), CancellationToken.None))?.Version == new Version(1,4,1,0),
                     "Bêta 1.3.2 détecte le correctif");
-                Check((await client.FindAsync(new Version(1,4,0,0), CancellationToken.None))?.Version == AppInfo.WindowsVersion,
+                Check((await client.FindAsync(new Version(1,4,0,0), CancellationToken.None))?.Version == new Version(1,4,1,0),
                     "Bêta 1.4 détecte le correctif");
-                Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "Le correctif ignore sa propre release");
+                Check(await client.FindAsync(new Version(1,4,1,0), CancellationToken.None) == null, "Le correctif ignore sa propre release");
+            }
+            using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent(Json(Release("windows-v1.4.1-beta"), Release("windows-v2.0.0")))
+            }))) {
+                foreach (var version in new[] { new Version(1,4,1,0), new Version(1,4,2,0) })
+                    Check((await client.FindAsync(version, CancellationToken.None))?.Version == AppInfo.WindowsVersion,
+                        "Migration vers la 1.0 stable depuis " + version);
+                Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "La version stable ignore sa propre publication");
             }
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Json(Release("windows-v1.0.0-beta"), Release("windows-v1.1.0-beta"))) }))) Check(await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None) == null, "Aucune réinstallation de version identique ou antérieure");
             using (var client = new UpdateClient(new UpdateTestHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)))) await Rejected(async () => { await client.FindAsync(AppInfo.WindowsVersion, CancellationToken.None); }, "Limite GitHub gérée");
@@ -91,14 +99,13 @@ public partial class MainWindow
                 UpdateClient.VerifyInstaller(paddedSetup, new UpdateRelease { Version = new Version(1,1,0,1), Sha256 = TestHash(File.ReadAllBytes(paddedSetup)) });
                 Check(true, "Installateur publié avec nom complété par des espaces accepté par le contrôle corrigé");
             }
-                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-Beta-1.4.1-Setup.exe"));
+                string compatibleSetup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "RadioIN-1.0-Setup.exe"));
             if (File.Exists(compatibleSetup)) {
                 var actual = System.Diagnostics.FileVersionInfo.GetVersionInfo(compatibleSetup);
                 Check(actual.ProductName == "Radio IN", "Nom du nouvel installateur compatible avec la comparaison stricte de Bêta 1.1");
                 UpdateClient.VerifyInstaller(compatibleSetup, new UpdateRelease { Version = AppInfo.WindowsVersion, Sha256 = TestHash(File.ReadAllBytes(compatibleSetup)) });
                 Check(true, "Véritable nouvel installateur vérifié : nom, version et SHA-256");
             }
-            var menu = new ContextMenu(); AddUpdateOptions(menu); Check(menu.Items.OfType<MenuItem>().Count() == 2, "Commandes de recherche manuelle et automatique présentes");
             offeredUpdate = good; offeredUpdate.Name = "Radio IN — Bêta 1.2 (démonstration)"; ShowUpdateWindow(); updateWindow!.UpdateLayout();
             Check(updateDownload!.Visibility == Visibility.Visible && updateInstall!.Visibility == Visibility.Collapsed, "Aucune installation proposée avant téléchargement vérifié");
             var bitmap = new RenderTargetBitmap((int)updateWindow.ActualWidth, (int)updateWindow.ActualHeight, 96,96, PixelFormats.Pbgra32); bitmap.Render((Visual)updateWindow.Content); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); using (var output = File.Create(Path.Combine(AppContext.BaseDirectory, "update-preview.png"))) encoder.Save(output);

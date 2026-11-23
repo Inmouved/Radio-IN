@@ -83,7 +83,7 @@ public partial class MainWindow
             Check(ExecuteMediaCommand(13) && !playing,"Touche multimédia Arrêt");
             Check(!ExecuteMediaCommand(11),"Commande piste suivante non interceptée pour une radio en direct");
             int count = preferences.Favorites.Count; ResetSettingsKeepingFavorites();
-            Check(preferences.Favorites.Count == count && Volume.Value == .75 && design == 0 && displayMode == 0,"Réinitialisation conserve les favoris");
+            Check(preferences.Favorites.Count == count && Volume.Value == .75 && design == 5 && displayMode == 0,"Réinitialisation conserve les favoris");
             Check(!preferences.MediaKeys,"Contrôle global multimédia désactivé par défaut");
             Check(PlainReleaseNotes("## Nouveautés\n- **Volume**\n[Radio](https://example.org)") == "Nouveautés\n• Volume\nRadio","Notes sans balisage Markdown brut");
             await TestPortableUpdates(root,Check,Reject);
@@ -103,7 +103,7 @@ public partial class MainWindow
         string[] required = { "RadioIN.exe", "RadioIN.exe.config", "libvlc.dll", "libvlccore.dll", "plugins/access/libhttps_plugin.dll", "plugins/codec/libmpg123_plugin.dll" };
         using (var zip = ZipFile.Open(archive,ZipArchiveMode.Create)) foreach (string name in required) zip.CreateEntryFromFile(Path.Combine(AppContext.BaseDirectory,name),name);
         string hash = PortableUpdate.Hash(archive), stage = Path.Combine(root,"valid");
-        string distribution = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","RadioIN-Beta-1.4.1-Windows.zip"));
+        string distribution = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","RadioIN-1.0-Windows.zip"));
         if (File.Exists(distribution)) {
             var packaged = PortableUpdate.Extract(distribution,PortableUpdate.Hash(distribution),AppInfo.WindowsVersion,Path.Combine(root,"distribution"));
             check(packaged.Count == 26,"ZIP de distribution réel validé : programme, configuration, licences et 20 modules audio");

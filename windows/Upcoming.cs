@@ -67,7 +67,7 @@ public partial class MainWindow
     string extraView = "", duplicateUrl = "";
     DateTime duplicateUntil;
     string queueError = "Chargement de la file…";
-    readonly List<Track> sessionHistory = new();
+    readonly List<ListeningEntry> sessionHistory = new();
     readonly Dictionary<string,ImageSource> queueArtCache = new();
     readonly HashSet<string> sessionEvents = new();
     readonly Queue<string> recentSessionEvents = new();
@@ -87,7 +87,7 @@ public partial class MainWindow
     void OpenExtraPanel(string name)
     {
         extraView = name; Panels.Visibility = Visibility.Collapsed; ExtraPanel.Visibility = Visibility.Visible;
-        ExtraSearch.Visibility = Visibility.Collapsed;
+        ExtraSearch.Visibility = ArchivePeriod.Visibility = Visibility.Collapsed;
         ExtraList.FontSize = 13 * preferences.TextScale;
         if (displayMode == 3) CoverStage.Visibility = Visibility.Collapsed;
         Dispatcher.BeginInvoke(new Action(FitExtraPanel));
@@ -179,14 +179,11 @@ public partial class MainWindow
         recentSessionEvents.Enqueue(key);
         if (recentSessionEvents.Count > 500) sessionEvents.Remove(recentSessionEvents.Dequeue());
         SaveListenedTrack(id, title, artist, playedAt);
-        sessionHistory.Insert(0,new Track(title,DateTime.Now.ToString("HH:mm:ss") + " · " + artist,"") { Id = id, ArtistName = artist });
+        var playedUtc = playedAt > 0 && playedAt <= 253402300799
+            ? DateTimeOffset.FromUnixTimeSeconds(playedAt).UtcDateTime : DateTime.UtcNow;
+        sessionHistory.Insert(0, new ListeningEntry { Id = id, Title = title, Artist = artist, PlayedUtc = playedUtc });
         if (sessionHistory.Count > 500) sessionHistory.RemoveAt(sessionHistory.Count - 1);
-        if (extraView == "session") { ReplaceTracks(ExtraList,sessionHistory.ToList()); ExtraStatus.Text = sessionHistory.Count + " titres observés pendant l’écoute · cette session uniquement."; }
-    }
-    void ShowSessionHistory()
-    {
-        OpenExtraPanel("session"); ExtraTitle.Text = "Ma session d’écoute"; RefreshQueue.Visibility = Visibility.Collapsed;
-        ExtraList.ItemTemplate = Items.ItemTemplate; ExtraList.ItemsSource = sessionHistory.ToList(); ExtraStatus.Text = sessionHistory.Count == 0 ? "Les titres apparaîtront pendant votre écoute." : sessionHistory.Count + " titres observés pendant l’écoute · cette session uniquement.";
+        if (extraView == "archive") RenderListeningArchive();
     }
     void TickUpcoming()
     {
